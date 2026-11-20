@@ -1,0 +1,54 @@
+{
+  "description": "Official Webox plugins, built by CI from github.com/PianoNic/WeboxPlugins",
+  "formatVersion": 1,
+  "homepage": "https://github.com/PianoNic/WeboxPlugins",
+  "name": "Webox Plugins",
+  "plugins": [
+    {
+      "authors": [
+        "Webox examples"
+      ],
+      "contract": "1.4",
+      "description": "Rainbow accents across Webox, in the colours of the Pride flag.",
+      "files": {
+        "linux-x86_64": {
+          "file": "files/dev.webox.plugins.pride-theme/1.4.0/linux-x86_64/libcollabhost_pride_theme.so",
+          "sha256": "56af064437a6ca0036aadca1295cb66c768ab01a7ea5fb4495dbf1440c012691",
+          "size": 371656
+        },
+        "windows-x86_64": {
+          "file": "files/dev.webox.plugins.pride-theme/1.4.0/windows-x86_64/collabhost_pride_theme.dll",
+          "sha256": "d64a7d7ec63f2490f7e6c9027eef35c83b6257f5011d507db643e7aee5fcc3d6",
+          "size": 194048
+        }
+      },
+      "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/pride-theme",
+      "name": "Pride Theme",
+      "pkg": "dev.webox.plugins.pride-theme",
+      "version": "1.4.0"
+    },
+    {
+      "authors": [
+        "Webox examples"
+      ],
+      "contract": "1.4",
+      "description": "Adds /shrug, /tableflip and /count, and turns :) into a smiley.",
+      "files": {
+        "linux-x86_64": {
+          "file": "files/dev.webox.plugins.slash-commands/1.4.0/linux-x86_64/libcollabhost_slash_commands.so",
+          "sha256": "de156029da76569e70bc6cc58c3265610760cb6dd565676094dff1a01ba5e028",
+          "size": 344008
+        },
+        "windows-x86_64": {
+          "file": "files/dev.webox.plugins.slash-commands/1.4.0/windows-x86_64/collabhost_slash_commands.dll",
+          "sha256": "d34c8101475c454a93f1d9ccb1630f44165056f1ae35e9969197261386d9cf77",
+          "size": 174592
+        }
+      },
+      "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/slash-commands",
+      "name": "Slash Commands",
+      "pkg": "dev.webox.plugins.slash-commands",
+      "version": "1.4.0"
+    }
+  ]
+}
