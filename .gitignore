@@ -1,0 +1,14 @@
+# Build output
+/target/
+/dist/
+/repo/
+
+# Local build against a Webox checkout (scripts/use-local-api.*)
+/.cargo/config.toml
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

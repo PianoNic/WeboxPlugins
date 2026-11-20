@@ -1,0 +1,14 @@
+[package]
+name = "xtask"
+version = "0.0.0"
+publish = false
+description = "Builds the repository index: collects the built plugins per platform and writes index.json / index.min.json."
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+collabhost-plugin-api.workspace = true
+libloading = "0.8"
+semver = "1"
+serde_json = "1"
+sha2 = "0.10"
