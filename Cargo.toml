@@ -10,7 +10,7 @@ repository = "https://github.com/PianoNic/WeboxPlugins"
 [workspace.dependencies]
 # The plugin interface lives in the Webox repository (plugin-api/). To build against a local Webox checkout instead, run
 # scripts/use-local-api.ps1 (or .sh) once: it writes a git-ignored .cargo/config.toml with a [patch] for this source.
-collabhost-plugin-api = "1.4"
+collabhost-plugin-api = "1.6"
 
 # The crate is not on crates.io: it comes from the Webox repository through this patch. A [patch.crates-io] entry in
 # .cargo/config.toml takes precedence over this one, which is how local builds and CI point it at a Webox checkout.

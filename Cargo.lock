@@ -19,18 +19,26 @@ checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 
 [[package]]
 name = "collabhost-plugin-api"
-version = "1.4.0"
+version = "1.6.0"
+
+[[package]]
+name = "collabhost_auto_reply"
+version = "1.0.0"
+dependencies = [
+ "collabhost-plugin-api",
+ "serde_json",
+]
 
 [[package]]
 name = "collabhost_pride_theme"
-version = "1.4.0"
+version = "1.6.0"
 dependencies = [
  "collabhost-plugin-api",
 ]
 
 [[package]]
 name = "collabhost_slash_commands"
-version = "1.4.0"
+version = "1.6.0"
 dependencies = [
  "collabhost-plugin-api",
 ]
