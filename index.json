@@ -18,7 +18,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.auto-reply/1.0.1/windows-x86_64/collabhost_auto_reply.dll",
-          "sha256": "5fc7d00981236273ec987bd3dc87a02f39ac2768c390e3147830df18a9a92bff",
+          "sha256": "5c1eca5fc3f360bbabc7c6b6d306311841a2eff3e60a439d3f4e2dea899ff04c",
           "size": 525824
         }
       },
@@ -41,7 +41,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.message-logger/1.0.0/windows-x86_64/collabhost_message_logger.dll",
-          "sha256": "f7aec3eaf98f98dfd36ad0e4ef77d3469508b5a8376ed3c5560cf4ad5065db29",
+          "sha256": "2318948c9e698242a4289696ecec21f1dad601f854a51bc5a4dcb01f55a7adf4",
           "size": 315904
         }
       },
@@ -64,7 +64,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.pride-theme/1.6.0/windows-x86_64/collabhost_pride_theme.dll",
-          "sha256": "692bcc0d54b6be2d1fbf344e3104242baae9a1f372e4acf2cfcb366e34d168bf",
+          "sha256": "84874b37d412d05d3a97a97038e61bf34595fd9b1b2788db14b2e3b5535cddb1",
           "size": 194048
         }
       },
@@ -87,7 +87,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.slash-commands/1.6.0/windows-x86_64/collabhost_slash_commands.dll",
-          "sha256": "ed6aa4bf134d9b0ddbbc1e3aab1f34f4bb31663e826921417b282038058cea1b",
+          "sha256": "98cefec5c8a95568a92d4296c5ab1d797a2ab13ec75809cf18e5158bd891ef1e",
           "size": 174592
         }
       },
@@ -95,6 +95,29 @@
       "name": "Slash Commands",
       "pkg": "dev.webox.plugins.slash-commands",
       "version": "1.6.0"
+    },
+    {
+      "authors": [
+        "Webox examples"
+      ],
+      "contract": "1.6",
+      "description": "Shows small avatars of the people who reacted next to each reaction, with their names on hover.",
+      "files": {
+        "linux-x86_64": {
+          "file": "files/dev.webox.plugins.who-reacted/1.0.0/linux-x86_64/libcollabhost_who_reacted.so",
+          "sha256": "2a4cb41d90ad7405209da60bf43709392e99f7e62e18b7705df0fa610db40e7f",
+          "size": 439968
+        },
+        "windows-x86_64": {
+          "file": "files/dev.webox.plugins.who-reacted/1.0.0/windows-x86_64/collabhost_who_reacted.dll",
+          "sha256": "007ed1c5aec93037f968c80b48b342866dff932b2e451ed9178fb0deeb7fd099",
+          "size": 260608
+        }
+      },
+      "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/who-reacted",
+      "name": "Wer hat reagiert",
+      "pkg": "dev.webox.plugins.who-reacted",
+      "version": "1.0.0"
     }
   ]
 }
