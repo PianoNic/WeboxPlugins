@@ -24,8 +24,9 @@ Imitate the user's style from their example messages: length, tone, formality (d
 punctuation, capitalisation and typical phrases. Keep it as short as the user usually writes. \
 Do not invent facts, appointments or promises; if a real answer needs something only the user knows, reply briefly and \
 noncommittally the way the user would. \
-If no reply is appropriate (for example the message is just \"ok\", a thanks, an emoji or a reaction, or the conversation \
-is finished), answer with exactly NO_REPLY.";
+Answer with exactly NO_REPLY only when the last incoming messages just acknowledge or close the conversation (for example \
+\"ok\", a thanks, an emoji or a reaction). A greeting (\"hi\", \"hoi\", \"hallo\", \"moin\"), a question or anything else \
+addressed to the user always gets a reply: answer a greeting with a short greeting.";
 
 /// One message as the host's `space.history` returns it.
 #[derive(Clone, Debug, PartialEq)]
@@ -73,9 +74,18 @@ pub fn user_prompt(hist: &[Msg], style: &[String]) -> String {
     p
 }
 
+/// A reasoning model's answer without its `<think>…</think>` part (an unclosed one is all reasoning).
+pub fn strip_think(answer: &str) -> &str {
+    match answer.rfind("</think>") {
+        Some(i) => &answer[i + "</think>".len()..],
+        None if answer.trim_start().starts_with("<think>") => "",
+        None => answer,
+    }
+}
+
 /// The reply in a model's answer: None when it said [`NO_REPLY`] or nothing.
 pub fn clean(answer: &str) -> Option<String> {
-    let t = answer.trim();
+    let t = strip_think(answer).trim();
     let t = t.strip_prefix("USER:").unwrap_or(t).trim();
     let t = if t.len() >= 2 && t.starts_with('"') && t.ends_with('"') { &t[1..t.len() - 1] } else { t };
     let t = t.trim();
@@ -90,6 +100,15 @@ impl Provider {
     }
     pub fn program(self) -> &'static str {
         match self { Provider::Claude => "claude", Provider::Codex => "codex", Provider::Cursor => "cursor-agent", Provider::Custom => "curl" }
+    }
+}
+
+/// The text of a chat-completions `content`: a string, or the text parts of an array of parts.
+fn content_text(c: &Value) -> String {
+    match c {
+        Value::String(s) => s.clone(),
+        Value::Array(parts) => parts.iter().filter_map(|p| p["text"].as_str()).collect(),
+        _ => String::new(),
     }
 }
 
@@ -129,7 +148,8 @@ impl Llm {
                     { "role": "system", "content": SYSTEM }, { "role": "user", "content": prompt } ] });
                 let mut cfg = format!("url = {}\nheader = \"Content-Type: application/json\"\ndata-binary = {}\n", curl_quote(&url), curl_quote(&body.to_string()));
                 if !self.token.is_empty() { cfg.push_str(&format!("header = {}\n", curl_quote(&format!("Authorization: Bearer {}", self.token)))); }
-                (a(&["-sS", "--max-time", &TIMEOUT.as_secs().to_string(), "-K", "-"]), cfg)
+                // `-w`: the HTTP status as the last line of the output, so an error says what the server answered.
+                (a(&["-sS", "--max-time", &TIMEOUT.as_secs().to_string(), "-w", "\\n%{http_code}", "-K", "-"]), cfg)
             }
         };
         if !model.is_empty() && self.provider != Provider::Custom {
@@ -157,9 +177,30 @@ impl Llm {
             }
             Provider::Codex => if ok { Ok(clean(out)) } else { fail(err) },
             Provider::Custom => {
-                let v: Value = serde_json::from_str(out.trim()).unwrap_or_default();
-                if let Some(c) = v["choices"][0]["message"]["content"].as_str() { return Ok(clean(c)); }
-                fail(v["error"]["message"].as_str().or(v["error"].as_str()).unwrap_or(if err.trim().is_empty() { out } else { err }))
+                // The last line is the HTTP status (`-w`); 0 = not there.
+                let (body, code) = match out.trim_end().rsplit_once('\n') {
+                    Some((b, c)) if c.trim().parse::<u16>().is_ok() => (b, c.trim().parse::<u16>().unwrap_or(0)),
+                    _ => (out, 0),
+                };
+                // curl itself failed (no connection, timeout, bad URL): its message is on stderr.
+                if !ok { return fail(if err.trim().is_empty() { body } else { err }); }
+                let v: Value = serde_json::from_str(body.trim()).unwrap_or_default();
+                let choice = &v["choices"][0];
+                if (code == 0 || (200..300).contains(&code)) && choice.is_object() {
+                    let text = content_text(&choice["message"]["content"]);
+                    if strip_think(&text).trim().is_empty() {
+                        let why = choice["finish_reason"].as_str().unwrap_or("?");
+                        return Err(format!("leere Antwort des Modells (finish_reason: {why})"));
+                    }
+                    return Ok(clean(&text));
+                }
+                let reason = v["error"]["message"].as_str().or(v["error"].as_str()).or(v["message"].as_str()).or(v["detail"].as_str())
+                    .map_or_else(|| body.trim().chars().take(200).collect::<String>(), str::to_string);
+                match code {
+                    0 => fail(&reason),
+                    c if reason.trim().is_empty() => Err(format!("HTTP {c}")),
+                    c => Err(format!("HTTP {c}: {}", reason.chars().take(300).collect::<String>())),
+                }
             }
         }
     }

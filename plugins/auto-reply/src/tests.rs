@@ -149,7 +149,7 @@ fn cursor_invocation_and_output() {
 fn custom_endpoint_goes_through_curl_with_the_token_on_stdin() {
     let l = Llm { endpoint: "https://api.example.com/v1/".into(), model: "gpt-4o-mini".into(), token: "sk-\"geheim\"".into(), ..llm(Provider::Custom) };
     let Invocation { program, args, stdin } = l.invocation("Hallo \"du\"\nzweite Zeile").unwrap();
-    assert_eq!((program.as_str(), args.join(" ")), ("curl", "-sS --max-time 120 -K -".to_string()));
+    assert_eq!((program.as_str(), args.join(" ")), ("curl", "-sS --max-time 120 -w \\n%{http_code} -K -".to_string()));
     assert!(!args.iter().any(|a| a.contains("sk-")), "the token never goes on the command line");
     assert!(stdin.contains("url = \"https://api.example.com/v1/chat/completions\"\n"));
     assert!(stdin.contains("header = \"Authorization: Bearer sk-\\\"geheim\\\"\"\n"), "{stdin}");
@@ -164,6 +164,137 @@ fn custom_endpoint_goes_through_curl_with_the_token_on_stdin() {
     assert_eq!(l.parse(false, "", "curl: (6) Could not resolve host"), Err("curl: (6) Could not resolve host".into()));
     assert!(Llm { endpoint: "".into(), ..l.clone() }.invocation("x").is_err());
     assert!(Llm { model: "".into(), ..l }.invocation("x").is_err());
+}
+
+#[test]
+fn custom_endpoint_errors_say_the_http_status() {
+    let l = Llm { endpoint: "https://api.example.com/v1".into(), model: "m".into(), ..llm(Provider::Custom) };
+    // `-w` puts the status on the last line.
+    let ok = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"hoi!\"},\"finish_reason\":\"stop\"}]}\n200";
+    assert_eq!(l.parse(true, ok, ""), Ok(Some("hoi!".into())));
+    assert_eq!(l.parse(true, &ok.replace("hoi!", "NO_REPLY"), ""), Ok(None));
+    assert_eq!(l.parse(true, "{\"error\":{\"message\":\"Invalid API key\"}}\n401", ""), Err("HTTP 401: Invalid API key".into()));
+    assert_eq!(l.parse(true, "{\"error\":\"model not found\"}\n404", ""), Err("HTTP 404: model not found".into()));
+    assert_eq!(l.parse(true, "<html>Bad Gateway</html>\n502", ""), Err("HTTP 502: <html>Bad Gateway</html>".into()));
+    assert_eq!(l.parse(true, "\n503", ""), Err("HTTP 503".into()));
+    assert_eq!(l.parse(false, "\n000", "curl: (28) Operation timed out"), Err("curl: (28) Operation timed out".into()));
+}
+
+#[test]
+fn reasoning_and_empty_answers() {
+    let l = Llm { endpoint: "https://x/v1".into(), model: "m".into(), ..llm(Provider::Custom) };
+    let with = |content: &str| format!("{{\"choices\":[{{\"message\":{{\"content\":{content}}},\"finish_reason\":\"length\"}}]}}\n200");
+    assert_eq!(l.parse(true, &with("\"<think>Ein Gruss.</think>\\n\\nhoi zäme\""), ""), Ok(Some("hoi zäme".into())));
+    assert_eq!(l.parse(true, &with("[{\"type\":\"text\",\"text\":\"hoi\"}]"), ""), Ok(Some("hoi".into())));
+    // No text (only reasoning, cut off, null): an error with the reason, not a silent "no reply".
+    assert_eq!(l.parse(true, &with("null"), ""), Err("leere Antwort des Modells (finish_reason: length)".into()));
+    assert_eq!(l.parse(true, &with("\"<think>noch am Überlegen\""), ""), Err("leere Antwort des Modells (finish_reason: length)".into()));
+    assert_eq!(clean("<think>x</think>NO_REPLY"), None);
+}
+
+#[test]
+fn greetings_are_not_no_reply() {
+    // The model answered NO_REPLY to "hoi": the instructions now say a greeting always gets a reply.
+    for w in ["A greeting", "\"hoi\"", "always gets a reply", "only when"] { assert!(llm::SYSTEM.contains(w), "{w}"); }
+}
+
+#[test]
+fn skipped_messages_say_why() {
+    let now = Instant::now();
+    let dm = nm("s1", "Anna", "hoi", DIRECT);
+    assert_eq!(skip(&on(), &State::default(), &dm, now), None);
+    let busy = State { pending: ["s1".to_string()].into(), ..State::default() };
+    assert_eq!(skip(&on(), &busy, &dm, now), Some("für diesen Chat läuft schon eine Antwort"));
+    let recent = State { last: [("s1".to_string(), now)].into(), ..State::default() };
+    assert_eq!(skip(&on(), &recent, &dm, now), Some("Abklingzeit für diesen Chat läuft noch"));
+    // The everyday reasons are not logged.
+    assert!(QUIET.contains(&skip(&on(), &State::default(), &nm("g", "Anna", "x", 0), now).unwrap()));
+}
+
+/// A host for the worker tests: records toasts and logs, answers `host.capabilities` and `space.history`.
+mod fake_host {
+    use collabhost_plugin_api::{cs, HostApi};
+    use std::ffi::{c_char, c_void, CStr, CString};
+    use std::sync::Mutex;
+    pub static SEEN: Mutex<Vec<String>> = Mutex::new(Vec::new());
+    fn s(p: *const c_char) -> String { unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned() }
+    extern "C" fn toast(_: *mut c_void, t: *const c_char) { SEEN.lock().unwrap().push(format!("toast: {}", s(t))) }
+    extern "C" fn log(_: *mut c_void, t: *const c_char) { SEEN.lock().unwrap().push(format!("log: {}", s(t))) }
+    extern "C" fn send(_: *mut c_void, t: *const c_char) { SEEN.lock().unwrap().push(format!("send: {}", s(t))) }
+    extern "C" fn free(p: *mut c_char) { drop(unsafe { CString::from_raw(p) }) }
+    extern "C" fn call(_: *mut c_void, m: *const c_char, j: *const c_char) -> *mut c_char {
+        let r = match s(m).as_str() {
+            "host.capabilities" => r#"{"message.received":1,"space.history":1,"space.send":1}"#.to_string(),
+            "space.history" => r#"{"messages":[{"author":"Manuel","mine":false,"text":"hoi"},{"author":"Manuel","mine":false,"text":"hoi 2"}]}"#.to_string(),
+            "space.send" => { SEEN.lock().unwrap().push(format!("space.send: {}", s(j))); "{}".to_string() }
+            _ => return std::ptr::null_mut(),
+        };
+        cs(&r).into_raw()
+    }
+    pub fn api() -> HostApi {
+        HostApi { ctx: std::ptr::null_mut(), toast: Some(toast), send: Some(send), log: Some(log), data_get: None, data_set: None,
+            free_str: Some(free), settings_get: None, call: Some(call) }
+    }
+}
+
+/// Answers one HTTP request on 127.0.0.1 with `status` and `body`; returns the endpoint URL.
+fn one_shot_server(status: &str, body: &str) -> String {
+    use std::io::{Read, Write};
+    let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}/v1", l.local_addr().unwrap());
+    let resp = format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+    std::thread::spawn(move || {
+        let (mut c, _) = l.accept().unwrap();
+        let (mut req, mut buf) = (Vec::new(), [0u8; 4096]);
+        // Headers, then as many body bytes as Content-Length says.
+        loop {
+            let n = c.read(&mut buf).unwrap_or(0);
+            if n == 0 { break; }
+            req.extend_from_slice(&buf[..n]);
+            let t = String::from_utf8_lossy(&req).to_string();
+            if let Some(h) = t.find("\r\n\r\n") {
+                let len = t[..h].lines().find_map(|l| l.to_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap_or(0))).unwrap_or(0);
+                if req.len() >= h + 4 + len { break; }
+            }
+        }
+        let _ = c.write_all(resp.as_bytes());
+    });
+    url
+}
+
+/// The worker end to end through the plugin's table, a fake host and a local endpoint (real curl): what the person sees.
+#[test]
+fn every_outcome_is_shown_in_suggestion_mode() {
+    if std::process::Command::new("curl").arg("--version").output().is_err() { eprintln!("no curl; skipping"); return; }
+    let v = unsafe { &*collabhost_plugin_api::vtable::<AutoReply>() };
+    let api = fake_host::api();
+    let run = |status: &str, body: &str, space: &str| -> Vec<String> {
+        let url = one_shot_server(status, body);
+        let settings = serde_json::json!({ "on": true, "mode": "suggest", "delay": 0, "provider": "custom", "endpoint": url, "model": "m" }).to_string();
+        let c = collabhost_plugin_api::cs(&settings);
+        (v.settings_changed.unwrap())(v.instance, c.as_ptr());
+        fake_host::SEEN.lock().unwrap().clear();
+        let (n, p) = (collabhost_plugin_api::cs("message.received"),
+            collabhost_plugin_api::cs(&serde_json::json!({ "space": space, "id": "m1", "author": "Manuel", "text": "hoi 2", "mine": false, "direct": true, "mentioned": false }).to_string()));
+        (v.on_event.unwrap())(v.instance, n.as_ptr(), p.as_ptr());
+        let t0 = Instant::now();
+        while t0.elapsed() < Duration::from_secs(20) && !fake_host::SEEN.lock().unwrap().iter().any(|l| l.starts_with("toast")) {
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        fake_host::SEEN.lock().unwrap().clone()
+    };
+    (v.start.unwrap())(v.instance, &api);
+    let ok = |c: &str| format!("{{\"choices\":[{{\"message\":{{\"content\":\"{c}\"}},\"finish_reason\":\"stop\"}}]}}");
+    let seen = run("200 OK", &ok("hoi Manuel!"), "a");
+    assert!(seen.contains(&"toast: Vorschlag für Manuel: hoi Manuel!".to_string()), "{seen:?}");
+    let seen = run("200 OK", &ok("NO_REPLY"), "b");
+    assert!(seen.contains(&"toast: Keine Antwort nötig (Manuel): das Modell hat NO_REPLY geantwortet.".to_string()), "{seen:?}");
+    let seen = run("401 Unauthorized", r#"{"error":{"message":"Invalid API key"}}"#, "c");
+    assert!(seen.contains(&"toast: Anbieter-Fehler: HTTP 401: Invalid API key".to_string()), "{seen:?}");
+    assert!(seen.contains(&"log: Anbieter-Fehler: HTTP 401: Invalid API key".to_string()), "{seen:?}");
+    assert!(!seen.iter().any(|l| l.contains("send")), "suggestion mode never sends");
+    (v.stop.unwrap())(v.instance);
+    (v.destroy.unwrap())(v.instance);
 }
 
 #[test]
