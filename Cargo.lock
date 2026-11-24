@@ -30,6 +30,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "collabhost_message_logger"
+version = "1.0.0"
+dependencies = [
+ "collabhost-plugin-api",
+ "serde_json",
+]
+
+[[package]]
 name = "collabhost_pride_theme"
 version = "1.6.0"
 dependencies = [

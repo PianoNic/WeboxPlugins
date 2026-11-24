@@ -26,6 +26,7 @@ On every push to `main`, CI builds every plugin for Windows and Linux, hashes th
 | Plugin | What it does |
 | --- | --- |
 | [Slash Commands](plugins/slash-commands) | `/shrug`, `/tableflip` and `/count`, and turns `:)` into a smiley. Settings: the smiley switch, your own `/shrug` text, a counter reset. |
+| [Nachrichtenprotokoll](plugins/message-logger) | Deleted messages stay visible, marked as deleted (red text or a red overlay), and edited messages show their earlier versions struck through. Settings: deletes, edits, ignore your own, which spaces, keep after a restart. Stored only on this computer. |
 | [Pride Theme](plugins/pride-theme) | Webox in the colours of a Pride flag: accents, a wash behind rail and header, rainbow card rims, a flag band on the rail, avatar rings, rainbow toggles, scrollbars and send button, confetti when sending, a June "Happy Pride!". Eight flags (Rainbow, Progress Pride, Trans, Bi, Lesbian, Pan, Non-binary, Ace); every decoration is a switch. Text stays readable (WCAG AA) on every theme, dark and light. |
 
 ## Installing
