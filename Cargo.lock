@@ -52,6 +52,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "collabhost_who_reacted"
+version = "1.0.0"
+dependencies = [
+ "collabhost-plugin-api",
+ "serde_json",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
