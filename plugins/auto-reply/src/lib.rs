@@ -80,15 +80,27 @@ impl Incoming {
     }
 }
 
-/// Whether `m` gets an auto-reply now.
-fn should_reply(cfg: &Cfg, st: &State, m: &Incoming, now: Instant) -> bool {
-    if !cfg.on || m.mine || m.text.trim().is_empty() { return false; }
-    if !(m.direct || (cfg.groups && m.mentioned)) { return false; }
+/// Why `m` gets no auto-reply now (None = it gets one). Reasons in [`QUIET`] are not logged (they fit almost every message).
+fn skip(cfg: &Cfg, st: &State, m: &Incoming, now: Instant) -> Option<&'static str> {
+    if !cfg.on { return Some("ausgeschaltet"); }
+    if m.mine { return Some("eigene Nachricht"); }
+    if m.text.trim().is_empty() { return Some("leere Nachricht"); }
+    if !(m.direct || (cfg.groups && m.mentioned)) { return Some("kein 1:1-Chat"); }
     let listed = cfg.people.iter().any(|p| *p == m.author.trim().to_lowercase());
-    match cfg.people_mode.as_str() { "allow" if !listed => return false, "deny" if listed => return false, _ => {} }
-    if st.pending.contains(&m.space) { return false; }
-    st.last.get(&m.space).map_or(true, |t| now.duration_since(*t) >= cfg.cooldown)
+    match cfg.people_mode.as_str() {
+        "allow" if !listed => return Some("Person nicht in der Liste"),
+        "deny" if listed => return Some("Person ausgeschlossen"),
+        _ => {}
+    }
+    if st.pending.contains(&m.space) { return Some("für diesen Chat läuft schon eine Antwort"); }
+    if st.last.get(&m.space).is_some_and(|t| now.duration_since(*t) < cfg.cooldown) { return Some("Abklingzeit für diesen Chat läuft noch"); }
+    None
 }
+const QUIET: &[&str] = &["ausgeschaltet", "eigene Nachricht", "leere Nachricht", "kein 1:1-Chat"];
+
+/// Whether `m` gets an auto-reply now.
+#[cfg(test)]
+fn should_reply(cfg: &Cfg, st: &State, m: &Incoming, now: Instant) -> bool { skip(cfg, st, m, now).is_none() }
 
 #[derive(Default)]
 pub struct AutoReply {
@@ -114,26 +126,34 @@ fn reply_job(host: Host, cfg: Cfg, space: String, author: String, pool: Vec<Stri
     if wait(cfg.delay, &cancel) {
         let args = serde_json::json!({ "space": space, "limit": HISTORY }).to_string();
         let hist = host.call("space.history", &args).map(|j| llm::parse_history(&j)).unwrap_or_default();
-        // I answered myself in the meantime (or the space is unknown): nothing to do.
-        if hist.last().is_some_and(|m| !m.mine) {
-            let produced: Vec<String> = lock(&state).produced.iter().cloned().collect();
-            let prompt = llm::user_prompt(&hist, &llm::style_examples(&hist, &pool, &produced));
-            let res = cfg.llm.ask(&prompt, &cancel);
-            if !cancel.load(Ordering::Relaxed) {
-                match &res {
-                    Ok(Some(r)) if cfg.send => {
-                        let answer = host.call("space.send", &serde_json::json!({ "space": space, "text": r }).to_string()).unwrap_or_default();
-                        if let Some(e) = serde_json::from_str::<serde_json::Value>(&answer).ok().and_then(|v| v["error"].as_str().map(String::from)) {
-                            host.toast(&format!("Senden fehlgeschlagen: {e}"));
+        // Every outcome is logged; in suggestion mode the person waits for a toast, so "nothing" gets one too.
+        let tell = |t: &str| { host.log(t); if !cfg.send { host.toast(t); } };
+        match hist.last() {
+            None => tell(&format!("Keine Antwort für {author}: Webox hat keinen Verlauf dieses Chats geliefert (space.history leer).")),
+            // I answered myself in the meantime: nothing to do.
+            Some(m) if m.mine => host.log(&format!("übersprungen ({author}): schon selbst geantwortet")),
+            Some(_) => {
+                let produced: Vec<String> = lock(&state).produced.iter().cloned().collect();
+                let prompt = llm::user_prompt(&hist, &llm::style_examples(&hist, &pool, &produced));
+                let res = cfg.llm.ask(&prompt, &cancel);
+                if !cancel.load(Ordering::Relaxed) {
+                    match &res {
+                        Ok(Some(r)) if cfg.send => {
+                            let answer = host.call("space.send", &serde_json::json!({ "space": space, "text": r }).to_string()).unwrap_or_default();
+                            match serde_json::from_str::<serde_json::Value>(&answer).ok().and_then(|v| v["error"].as_str().map(String::from)) {
+                                Some(e) => { host.log(&format!("Senden fehlgeschlagen: {e}")); host.toast(&format!("Senden fehlgeschlagen: {e}")) }
+                                None => host.log(&format!("an {author} gesendet")),
+                            }
                         }
+                        Ok(Some(r)) => { host.log(&format!("Vorschlag für {author} erstellt")); host.toast(&format!("Vorschlag für {author}: {r}")) }
+                        Ok(None) => tell(&format!("Keine Antwort nötig ({author}): das Modell hat {} geantwortet.", llm::NO_REPLY)),
+                        // Errors always show, also when sending automatically.
+                        Err(e) => { host.log(&format!("Anbieter-Fehler: {e}")); host.toast(&format!("Anbieter-Fehler: {e}")) }
                     }
-                    Ok(Some(r)) => host.toast(&format!("Vorschlag für {author}: {r}")),
-                    Ok(None) => host.log(&format!("keine Antwort nötig ({author})")),
-                    Err(e) => host.toast(&format!("Fehler: {e}")),
+                    let mut st = lock(&state);
+                    if let Ok(Some(r)) = &res { st.produced.push_back(r.clone()); if st.produced.len() > POOL { st.produced.pop_front(); } }
+                    if !matches!(res, Ok(None)) { st.last.insert(space.clone(), Instant::now()); }
                 }
-                let mut st = lock(&state);
-                if let Ok(Some(r)) = &res { st.produced.push_back(r.clone()); if st.produced.len() > POOL { st.produced.pop_front(); } }
-                if !matches!(res, Ok(None)) { st.last.insert(space.clone(), Instant::now()); }
             }
         }
     }
@@ -223,7 +243,10 @@ impl AutoReply {
         let Some(host) = self.host else { return };
         {
             let mut st = lock(&self.state);
-            if !should_reply(&self.cfg, &st, m, Instant::now()) { return; }
+            if let Some(why) = skip(&self.cfg, &st, m, Instant::now()) {
+                if !QUIET.contains(&why) { host.log(&format!("übersprungen ({}): {why}", m.author)); }
+                return;
+            }
             st.pending.insert(m.space.clone());
         }
         let (cfg, space, author, pool) = (self.cfg.clone(), m.space.clone(), m.author.clone(), self.pool.iter().cloned().collect());

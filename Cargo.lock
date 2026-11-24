@@ -23,7 +23,7 @@ version = "1.6.0"
 
 [[package]]
 name = "collabhost_auto_reply"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "collabhost-plugin-api",
  "serde_json",
