@@ -158,10 +158,19 @@ checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 [[package]]
 name = "collabhost-plugin-api"
 version = "1.6.1"
+source = "git+https://github.com/PianoNic/Webox?branch=main#5269b194f4f14e71bd15f5309b6151a9cc85f238"
 
 [[package]]
 name = "collabhost_auto_reply"
 version = "1.0.1"
+dependencies = [
+ "collabhost-plugin-api",
+ "serde_json",
+]
+
+[[package]]
+name = "collabhost_mcp"
+version = "1.0.0"
 dependencies = [
  "collabhost-plugin-api",
  "serde_json",
