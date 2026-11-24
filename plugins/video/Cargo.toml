@@ -1,0 +1,29 @@
+[package]
+name = "collabhost_video"
+version = "1.0.0"
+description = "More camera options: a video file or a picture instead of the camera, a blurred or replaced background, mirror, brightness and contrast, a soft-focus face filter, your name on screen and a low-light boost. Everything runs on this computer."
+authors = ["Webox examples"]
+homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/video"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# What the repository index says about this plugin (docs: CONTRIBUTING.md).
+[package.metadata.webox]
+name = "Video"
+pkg = "dev.webox.plugins.video"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# 1.6.1: `Host::camera_filter` and the `file` settings field (the host methods camera.filter / camera.source / media.*).
+collabhost-plugin-api = "1.6.1"
+# Person segmentation for the background: a pure-Rust ONNX runtime (the one Webox itself uses for noise removal), no native libs.
+tract-onnx = "0.21"
+# The name overlay: glyph outlines of the bundled Selawik font.
+ab_glyph = "0.2"
+
+[dev-dependencies]
+# Only for the by-hand benchmark / picture dump (tests::bench): reads and writes PNG.
+image = { version = "0.25", default-features = false, features = ["png"] }
