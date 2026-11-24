@@ -13,12 +13,12 @@
       "files": {
         "linux-x86_64": {
           "file": "files/dev.webox.plugins.auto-reply/1.0.1/linux-x86_64/libcollabhost_auto_reply.so",
-          "sha256": "06b82e2d6becc3fdda83ccfa63c6600e8680d7cf07a65be42cdaaa016931f493",
+          "sha256": "fbbf54c67bc5644dbc0e1ad93a8ea9512a709fabc4d37293be7e05848b9ba29d",
           "size": 630504
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.auto-reply/1.0.1/windows-x86_64/collabhost_auto_reply.dll",
-          "sha256": "0394f3184b00e6ff394655a59e3cab54a94270cdcbbeb487ac7f39cca7ca3e27",
+          "sha256": "ba01b8b31ecc48fbc35f07d8156360decc187176151d2710bc381925f840f942",
           "size": 525824
         }
       },
@@ -32,16 +32,39 @@
         "Webox examples"
       ],
       "contract": "1.6",
+      "description": "Lets a local AI (Claude Code, Claude Desktop, LM Studio, any MCP client) read your Webex through Webox as MCP tools; sending only when allowed and confirmed.",
+      "files": {
+        "linux-x86_64": {
+          "file": "files/dev.webox.plugins.mcp/1.0.0/linux-x86_64/libcollabhost_mcp.so",
+          "sha256": "cd321155b7158d2ac80a25bf4731cb85963cc9f174b37a2ba191e50f7b043d52",
+          "size": 637928
+        },
+        "windows-x86_64": {
+          "file": "files/dev.webox.plugins.mcp/1.0.0/windows-x86_64/collabhost_mcp.dll",
+          "sha256": "4dd00b33f1bf8437c0c2dc202657b0671a7e5610d583d0648df9ca2d537ac3bd",
+          "size": 518656
+        }
+      },
+      "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/mcp",
+      "name": "Webex MCP",
+      "pkg": "dev.webox.plugins.mcp",
+      "version": "1.0.0"
+    },
+    {
+      "authors": [
+        "Webox examples"
+      ],
+      "contract": "1.6",
       "description": "Keeps deleted messages visible, marked as deleted, and shows the earlier versions of edited messages. Stored only on this computer.",
       "files": {
         "linux-x86_64": {
           "file": "files/dev.webox.plugins.message-logger/1.0.0/linux-x86_64/libcollabhost_message_logger.so",
-          "sha256": "7fdc8b27f3f7fe52a152c07ea83fde7d0cd835d4db3e7f01611442b801c16afd",
+          "sha256": "e865494d94341d7c5dbf9899cba78dff93dfa64d2b62c9543b8f2911f9d316d4",
           "size": 478072
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.message-logger/1.0.0/windows-x86_64/collabhost_message_logger.dll",
-          "sha256": "540471e3bdb64a89359dbf22564a70389676b2ebb94b2152445bba9154a3b92b",
+          "sha256": "bf0a0202bb13e02f88254c896faebac679b7d007df4eb1ccb0baf3682d277623",
           "size": 315904
         }
       },
@@ -59,12 +82,12 @@
       "files": {
         "linux-x86_64": {
           "file": "files/dev.webox.plugins.pride-theme/1.6.0/linux-x86_64/libcollabhost_pride_theme.so",
-          "sha256": "cf6f7c352d02faaaf2ef84d3b3243919405048f3bbd7fcc7b15f0746ca0e738b",
+          "sha256": "99b8085585c4c1656cd66a532315667af451984c0abf02a11e67f1f8f763c4f5",
           "size": 371672
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.pride-theme/1.6.0/windows-x86_64/collabhost_pride_theme.dll",
-          "sha256": "39a6ee2fc2f518b10324c987bf7e5ea8227b23cdc5941a0f2c9b353b889cfe98",
+          "sha256": "ab805218c51d538e9ff307fad3185f2089add9cf40ceffe5c5b25f0976c4c972",
           "size": 194048
         }
       },
@@ -82,12 +105,12 @@
       "files": {
         "linux-x86_64": {
           "file": "files/dev.webox.plugins.slash-commands/1.6.0/linux-x86_64/libcollabhost_slash_commands.so",
-          "sha256": "17cff8090c69e9d381e8fff514f2dad43138369c2f0f9294a6a4d54a96d6a5c3",
+          "sha256": "ab7b20e96b65d32ea8f9ed21dcce81faa85526d72e2218d50863c432d7b86884",
           "size": 344008
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.slash-commands/1.6.0/windows-x86_64/collabhost_slash_commands.dll",
-          "sha256": "b2dc0afb94638d04c7b549c6aa45b02370d32f1db910fc5870224b8d6f6d0199",
+          "sha256": "da8ec895ee5c09155e16fbb239c14c1785002f58f0bdaec64ed9365ea1c7c9f0",
           "size": 174592
         }
       },
@@ -105,12 +128,12 @@
       "files": {
         "linux-x86_64": {
           "file": "files/dev.webox.plugins.video/1.0.0/linux-x86_64/libcollabhost_video.so",
-          "sha256": "69100337b279fe929c0d798e0c97a0a8017a14b4c8fa51aa7ac736233ce4d625",
+          "sha256": "1f8219d39140f371d32d66e3a0bb1bdb460f9a44cb3609f1e82f0455bd6ba560",
           "size": 16902448
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.video/1.0.0/windows-x86_64/collabhost_video.dll",
-          "sha256": "baa168f13702ae77d312df99690d1dbd0c6f29dfe3978dde3aebd2fb1d450d4a",
+          "sha256": "b37c0211cd927ef5e9e5f5bd87bcfa9c0d06b5eb1518a8bd3a3f53da563749df",
           "size": 18804224
         }
       },
@@ -128,12 +151,12 @@
       "files": {
         "linux-x86_64": {
           "file": "files/dev.webox.plugins.who-reacted/1.0.0/linux-x86_64/libcollabhost_who_reacted.so",
-          "sha256": "8f6a9a7858fafedef983c1447b33c5c925491436745f57136556912d28b9bd76",
+          "sha256": "5ed21201fa63f96d21784dde0c2be2203c5df2f495737223dcb202cbca9707bf",
           "size": 439968
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.who-reacted/1.0.0/windows-x86_64/collabhost_who_reacted.dll",
-          "sha256": "3a821f7b23742f8c35eb21ff3ae1dda99b0bc3b474d9456a6f5f81cdabd03a27",
+          "sha256": "43879d3eeab59ec84fa04eac2ba1871779e14245133a5099dbcc77d2d2a454e4",
           "size": 260608
         }
       },
