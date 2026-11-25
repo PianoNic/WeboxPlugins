@@ -8,6 +8,8 @@
 pub mod decor;
 
 use collabhost_plugin_api::color::{contrast, fill_for_text, is_grey, mix, readable, rgb, text_on, AA_GRAPHIC, AA_TEXT};
+mod i18n;
+
 use collabhost_plugin_api::{export_plugin, Accents, Decor, Plugin, Schema, ThemeInfo, Values, GRADIENT_MAX};
 
 /// (setting value, label, stripes top to bottom as 0xRRGGBB): the flags' standard colours.
@@ -77,6 +79,8 @@ impl Plugin for Pride {
     const AUTHOR: &'static str = "Webox examples";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
+    const EVENTS: &'static str = "i18n.strings";
+    fn on_event(&mut self, name: &str, payload: &str) -> Option<String> { (name == "i18n.strings").then(|| i18n::strings(payload)) }
 
     fn settings(&self) -> Option<Schema> {
         let opts: Vec<(&str, &str)> = FLAGS.iter().map(|(v, l, _)| (*v, *l)).collect();
@@ -107,6 +111,24 @@ impl Plugin for Pride {
 }
 
 export_plugin!(Pride);
+
+#[cfg(test)]
+mod i18n_tests {
+    use super::*;
+    #[test]
+    fn every_setting_has_a_german_text() {
+        let s = Pride::default().settings().unwrap().to_json();
+        assert_eq!(i18n::untranslated(&s, &[]), Vec::<String>::new());
+    }
+    #[test]
+    fn the_event_answers_german_and_nothing_for_other_languages() {
+        let mut p = Pride::default();
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"fr","fallbacks":["fr_FR","fr"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"en","fallbacks":["en_US","en"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        let de: serde_json::Value = serde_json::from_str(&i18n::answer("de_CH")).unwrap();
+        assert_eq!(de["strings"]["Rainbow"], "Regenbogen");
+    }
+}
 
 #[cfg(test)]
 mod tests;

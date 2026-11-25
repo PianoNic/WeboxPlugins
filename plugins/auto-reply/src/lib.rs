@@ -6,9 +6,11 @@
 //! Threads: `message.received` arrives on Webox's UI thread, so it only checks the guards and starts a worker; the worker waits
 //! the delay, reads the history, runs the provider (a child process) and sends or suggests through the host. `stop` sets
 //! `cancel` (which kills a running child) and joins every worker before it returns.
+mod i18n;
 mod llm;
 
 use collabhost_plugin_api::{export_plugin, Host, Plugin, Schema, Values};
+use i18n::t;
 use llm::{Llm, Msg, Provider};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -129,9 +131,9 @@ fn reply_job(host: Host, cfg: Cfg, space: String, author: String, pool: Vec<Stri
         // Every outcome is logged; in suggestion mode the person waits for a toast, so "nothing" gets one too.
         let tell = |t: &str| { host.log(t); if !cfg.send { host.toast(t); } };
         match hist.last() {
-            None => tell(&format!("No reply for {author}: Webox returned no history for this chat (space.history is empty).")),
+            None => tell(&t("No reply for {author}: Webox returned no history for this chat (space.history is empty).").replace("{author}", &author)),
             // I answered myself in the meantime: nothing to do.
-            Some(m) if m.mine => host.log(&format!("skipped ({author}): you already replied yourself")),
+            Some(m) if m.mine => host.log(&t("skipped ({author}): you already replied yourself").replace("{author}", &author)),
             Some(_) => {
                 let produced: Vec<String> = lock(&state).produced.iter().cloned().collect();
                 let prompt = llm::user_prompt(&hist, &llm::style_examples(&hist, &pool, &produced));
@@ -141,14 +143,17 @@ fn reply_job(host: Host, cfg: Cfg, space: String, author: String, pool: Vec<Stri
                         Ok(Some(r)) if cfg.send => {
                             let answer = host.call("space.send", &serde_json::json!({ "space": space, "text": r }).to_string()).unwrap_or_default();
                             match serde_json::from_str::<serde_json::Value>(&answer).ok().and_then(|v| v["error"].as_str().map(String::from)) {
-                                Some(e) => { host.log(&format!("Sending failed: {e}")); host.toast(&format!("Sending failed: {e}")) }
-                                None => host.log(&format!("sent to {author}")),
+                                Some(e) => { let m = t("Sending failed: {e}").replace("{e}", &e); host.log(&m); host.toast(&m) }
+                                None => host.log(&t("sent to {author}").replace("{author}", &author)),
                             }
                         }
-                        Ok(Some(r)) => { host.log(&format!("suggestion for {author} created")); host.toast(&format!("Suggestion for {author}: {r}")) }
-                        Ok(None) => tell(&format!("No reply needed ({author}): the model answered {}.", llm::NO_REPLY)),
+                        Ok(Some(r)) => {
+                            host.log(&t("suggestion for {author} created").replace("{author}", &author));
+                            host.toast(&t("Suggestion for {author}: {r}").replace("{author}", &author).replace("{r}", r))
+                        }
+                        Ok(None) => tell(&t("No reply needed ({author}): the model answered {no_reply}.").replace("{author}", &author).replace("{no_reply}", llm::NO_REPLY)),
                         // Errors always show, also when sending automatically.
-                        Err(e) => { host.log(&format!("Provider error: {e}")); host.toast(&format!("Provider error: {e}")) }
+                        Err(e) => { let m = t("Provider error: {e}").replace("{e}", &t(e)); host.log(&m); host.toast(&m) }
                     }
                     let mut st = lock(&state);
                     if let Ok(Some(r)) = &res { st.produced.push_back(r.clone()); if st.produced.len() > POOL { st.produced.pop_front(); } }
@@ -172,10 +177,11 @@ impl Plugin for AutoReply {
     const AUTHOR: &'static str = "Webox examples";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
-    const EVENTS: &'static str = "message.received";
+    const EVENTS: &'static str = "message.received i18n.strings";
 
     fn start(&mut self, host: Host) {
         self.cancel.store(false, Ordering::Relaxed);
+        i18n::sync(host);
         if !["message.received", "space.history", "space.send"].iter().all(|n| host.has(n)) {
             host.toast("This Webox version does not tell plugins about incoming messages (message.received, space.history or space.send is missing). Please update Webox.");
         }
@@ -211,24 +217,25 @@ impl Plugin for AutoReply {
     fn settings_changed(&mut self, v: &Values) { self.cfg = Cfg::from(v); }
     fn settings_action(&mut self, id: &str) -> Option<String> {
         if id != "test" { return None; }
-        let Some(host) = self.host else { return Some("Please turn the plugin on first.".into()) };
+        let Some(host) = self.host else { return Some(t("Please turn the plugin on first.")) };
         let (llm, cancel) = (self.cfg.llm.clone(), self.cancel.clone());
         self.spawn(move || {
             let t0 = Instant::now();
-            let hist = [Msg { author: "Test".into(), mine: false, text: "Hi! Quick connection test, how are you?".into() }];
+            let hist = [Msg { author: "Test".into(), mine: false, text: t("Hi! Quick connection test, how are you?") }];
             let res = llm.ask(&llm::user_prompt(&hist, &[]), &cancel);
             if cancel.load(Ordering::Relaxed) { return; }
             let s = t0.elapsed().as_secs_f32();
             host.toast(&match res {
-                Ok(Some(r)) => format!("Connection ok ({s:.1} s): {r}"),
-                Ok(None) => format!("Connection ok ({s:.1} s), the model chose not to reply"),
-                Err(e) => format!("Connection failed: {e}"),
+                Ok(Some(r)) => t("Connection ok ({s} s): {r}").replace("{s}", &format!("{s:.1}")).replace("{r}", &r),
+                Ok(None) => t("Connection ok ({s} s), the model chose not to reply").replace("{s}", &format!("{s:.1}")),
+                Err(e) => t("Connection failed: {e}").replace("{e}", &t(&e)),
             });
         });
-        Some("Test running, the result shows as a notification.".into())
+        Some(t("Test running, the result shows as a notification."))
     }
 
     fn on_event(&mut self, name: &str, payload: &str) -> Option<String> {
+        if name == "i18n.strings" { return Some(i18n::strings(payload)); }
         if name == "message.received" { if let Some(m) = Incoming::parse(payload) { self.on_message_received(&m) } }
         None
     }
@@ -244,7 +251,7 @@ impl AutoReply {
         {
             let mut st = lock(&self.state);
             if let Some(why) = skip(&self.cfg, &st, m, Instant::now()) {
-                if !QUIET.contains(&why) { host.log(&format!("skipped ({}): {why}", m.author)); }
+                if !QUIET.contains(&why) { host.log(&t("skipped ({author}): {why}").replace("{author}", &m.author).replace("{why}", &t(why))); }
                 return;
             }
             st.pending.insert(m.space.clone());
@@ -256,6 +263,24 @@ impl AutoReply {
 }
 
 export_plugin!(AutoReply);
+
+#[cfg(test)]
+mod i18n_tests {
+    use super::*;
+    #[test]
+    fn every_setting_has_a_german_text() {
+        let s = AutoReply::default().settings().unwrap().to_json();
+        assert_eq!(i18n::untranslated(&s, &[AutoReply::NAME]), Vec::<String>::new());
+    }
+    #[test]
+    fn the_event_answers_german_and_nothing_for_other_languages() {
+        let mut p = AutoReply::default();
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"fr","fallbacks":["fr_FR","fr"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"en","fallbacks":["en_US","en"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        let de: serde_json::Value = serde_json::from_str(&i18n::answer("de_CH")).unwrap();
+        assert_eq!(de["strings"]["Test connection"], "Verbindung testen");
+    }
+}
 
 #[cfg(test)]
 mod tests;

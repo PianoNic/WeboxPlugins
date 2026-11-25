@@ -18,6 +18,7 @@ use serde_json::{json, Value};
 use std::collections::HashSet;
 
 mod diff;
+mod i18n;
 use diff::{diff, Part};
 
 /// At most this many deleted messages and edited messages are kept (the oldest go first).
@@ -342,9 +343,10 @@ impl Plugin for MessageLogger {
     const AUTHOR: &'static str = "Webox examples";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
-    const EVENTS: &'static str = "message.deleted message.edited message.menu message.menu_action space.menu space.menu_action message.edit_tag_clicked";
+    const EVENTS: &'static str = "message.deleted message.edited message.menu message.menu_action space.menu space.menu_action message.edit_tag_clicked i18n.strings";
 
     fn start(&mut self, host: Host) {
+        i18n::sync(host);
         if !["message.deleted", "message.edited", "message.keep"].iter().all(|n| host.has(n)) {
             host.toast("This Webox version does not tell plugins about deleted or edited messages (message.deleted, message.edited or message.keep is missing). Please update Webox.");
         }
@@ -396,13 +398,34 @@ impl Plugin for MessageLogger {
         self.session = Session::default();
         self.save();
         self.sync();
-        Some("Message log cleared.".into())
+        Some(i18n::t("Message log cleared."))
     }
 
-    fn on_event(&mut self, name: &str, payload: &str) -> Option<String> { self.answer(name, payload) }
+    fn on_event(&mut self, name: &str, payload: &str) -> Option<String> {
+        if name == "i18n.strings" { return Some(i18n::strings(payload)); }
+        self.answer(name, payload)
+    }
 }
 
 export_plugin!(MessageLogger);
+
+#[cfg(test)]
+mod i18n_tests {
+    use super::*;
+    #[test]
+    fn every_setting_has_a_german_text() {
+        let s = MessageLogger::default().settings().unwrap().to_json();
+        assert_eq!(i18n::untranslated(&s, &[MessageLogger::NAME]), Vec::<String>::new());
+    }
+    #[test]
+    fn the_event_answers_german_and_nothing_for_other_languages() {
+        let mut p = MessageLogger::default();
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"fr","fallbacks":["fr_FR","fr"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"en","fallbacks":["en_US","en"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        let de: serde_json::Value = serde_json::from_str(&i18n::answer("de_CH")).unwrap();
+        assert_eq!(de["strings"]["Clear Message Log"], "Protokoll leeren");
+    }
+}
 
 #[cfg(test)]
 mod tests;

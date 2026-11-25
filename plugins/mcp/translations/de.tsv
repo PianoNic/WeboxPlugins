@@ -1,0 +1,38 @@
+MCP server on	MCP-Server aktiv
+Copy connection	Verbindung kopieren
+Show recent calls	Letzte Aufrufe anzeigen
+MCP server stopped	MCP-Server gestoppt
+MCP server running: {url}	MCP-Server läuft: {url}
+MCP server could not open port {port}: {e}	MCP-Server konnte Port {port} nicht öffnen: {e}
+Please turn the plugin on first.	Bitte das Plugin zuerst einschalten.
+The system returned no random numbers.	Das System lieferte keine Zufallszahlen.
+This Webox version cannot run the MCP server (missing: {missing}). Please update Webox.	Diese Webox-Version kann den MCP-Server nicht bedienen (fehlt: {missing}). Bitte Webox aktualisieren.
+MCP server	MCP-Server
+Lets a local AI (Claude Code, Claude Desktop, LM Studio, …) read your Webex spaces, messages and people through the Model Context Protocol. The server listens on 127.0.0.1 only and requires the token.	Lässt eine lokale KI (Claude Code, Claude Desktop, LM Studio, …) über das Model Context Protocol Ihre Webex-Bereiche, Nachrichten und Personen lesen. Der Server hört nur auf 127.0.0.1 und verlangt das Token.
+Address: http://127.0.0.1:<port>/mcp	Adresse: http://127.0.0.1:<Port>/mcp
+Created on the first start and stored in the OS keyring. Clients send it as "Authorization: Bearer <token>".	Wird beim ersten Start erzeugt und im Schlüsselbund gespeichert. Clients senden es als „Authorization: Bearer <Token>“.
+Show token	Token anzeigen
+Generate new token	Token neu erzeugen
+Connected clients then need the new token.	Verbundene Clients brauchen danach das neue Token.
+Puts the Claude Code command and an mcp.json with address and token on the clipboard.	Legt den Befehl für Claude Code und eine mcp.json mit Adresse und Token in die Zwischenablage.
+Permissions	Berechtigungen
+The AI reads only what Webox has loaded. Every call is logged (client, tool, space; never message text).	Die KI liest nur, was Webox geladen hat. Jeder Aufruf wird protokolliert (Client, Werkzeug, Bereich; nie Nachrichtentexte).
+Allow the AI to send messages	KI darf Nachrichten senden
+You confirm every message in Webox with "Send".	Jede Nachricht müssen Sie in Webox mit „Senden“ bestätigen.
+Only these spaces	Nur diese Bereiche
+One space name (or id) per line. Empty = all spaces are visible to the AI.	Ein Bereichsname (oder eine ID) pro Zeile. Leer = alle Bereiche sind für die KI sichtbar.
+No token yet: please turn the plugin on.	Noch kein Token: bitte das Plugin einschalten.
+New token generated. Connected clients need the new token.	Neues Token erzeugt. Verbundene Clients brauchen das neue Token.
+Connection copied ({url})	Verbindung kopiert ({url})
+. Note: "MCP server on" is off.	. Hinweis: „MCP-Server aktiv“ ist aus.
+No calls yet.	Noch keine Aufrufe.
+declined	abgelehnt
+error	Fehler
+Send message?	Nachricht senden?
+{client} wants to send to "{title}":\n\n{text}	{client} möchte an „{title}“ senden:\n\n{text}
+Send	Senden
+Decline	Ablehnen
+rejected: foreign host or origin	abgewiesen: fremder Host oder fremde Herkunft (Origin)
+rejected: request without a valid token	abgewiesen: Anfrage ohne gültiges Token
+Port	Port
+Token	Token

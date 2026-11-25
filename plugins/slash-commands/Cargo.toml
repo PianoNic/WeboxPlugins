@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_slash_commands"
-version = "1.6.1"
+version = "1.6.2"
 description = "Adds /shrug, /tableflip and /count, and turns :) into a smiley."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/slash-commands"
@@ -18,3 +18,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 collabhost-plugin-api.workspace = true
+
+[dev-dependencies]
+# Only for the translation table check (i18n::untranslated).
+serde_json = "1"

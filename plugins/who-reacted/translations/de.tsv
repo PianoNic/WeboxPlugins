@@ -1,0 +1,11 @@
+Who Reacted	Wer hat reagiert
+This Webox version cannot show avatars on reactions (reactions.show_avatars is missing). Please update Webox.	Diese Webox-Version kann keine Avatare an Reaktionen zeigen (reactions.show_avatars fehlt). Bitte Webox aktualisieren.
+Shows small avatars of the people who reacted next to each reaction. The name shows on hover.	Zeigt neben jeder Reaktion kleine Avatare der Personen, die so reagiert haben. Der Name erscheint beim Darüberfahren.
+Show avatars	Avatare anzeigen
+Show at most	Höchstens anzeigen
+More people show as "+N".	Weitere Personen erscheinen als „+N“.
+Size	Größe
+Small	Klein
+Medium	Mittel
+Hide your own reaction	Eigene Reaktion ausblenden
+Your own avatar is left out.	Ihr eigener Avatar erscheint nicht.

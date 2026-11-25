@@ -1,3 +1,5 @@
+mod i18n;
+
 use collabhost_plugin_api::{export_plugin, Host, Plugin, Schema, Values};
 
 const SHRUG: &str = "\u{af}\\_(\u{30c4})_/\u{af}";
@@ -15,9 +17,12 @@ impl Plugin for SlashCommands {
     // Version and description come from Cargo.toml, the one place the repository index reads them from too.
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
+    const EVENTS: &'static str = "i18n.strings";
+    fn on_event(&mut self, name: &str, payload: &str) -> Option<String> { (name == "i18n.strings").then(|| i18n::strings(payload)) }
     const COMMANDS: &'static str = "shrug tableflip count";
 
     fn start(&mut self, host: Host) {
+        i18n::sync(host);
         self.sent = host.get("sent").and_then(|s| s.parse().ok()).unwrap_or(0);
         self.host = Some(host);
     }
@@ -39,7 +44,7 @@ impl Plugin for SlashCommands {
         (id == "reset_count").then(|| {
             self.sent = 0;
             if let Some(h) = self.host { h.set("sent", "0") }
-            "Counter reset".to_string()
+            i18n::t("Counter reset")
         })
     }
 
@@ -60,6 +65,24 @@ impl Plugin for SlashCommands {
 }
 
 export_plugin!(SlashCommands);
+
+#[cfg(test)]
+mod i18n_tests {
+    use super::*;
+    #[test]
+    fn every_setting_has_a_german_text() {
+        let s = SlashCommands::default().settings().unwrap().to_json();
+        assert_eq!(i18n::untranslated(&s, &[]), Vec::<String>::new());
+    }
+    #[test]
+    fn the_event_answers_german_and_nothing_for_other_languages() {
+        let mut p = SlashCommands::default();
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"fr","fallbacks":["fr_FR","fr"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"en","fallbacks":["en_US","en"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        let de: serde_json::Value = serde_json::from_str(&i18n::answer("de_CH")).unwrap();
+        assert_eq!(de["strings"]["Counter reset"], "Zähler zurückgesetzt");
+    }
+}
 
 #[cfg(test)]
 mod tests {

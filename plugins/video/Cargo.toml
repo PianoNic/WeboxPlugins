@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_video"
-version = "1.0.1"
+version = "1.0.2"
 description = "More camera options: a video file or a picture instead of the camera, a blurred or replaced background, mirror, brightness and contrast, a soft-focus face filter, your name on screen and a low-light boost. Everything runs on this computer."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/video"
@@ -27,3 +27,5 @@ ab_glyph = "0.2"
 [dev-dependencies]
 # Only for the by-hand benchmark / picture dump (tests::bench): reads and writes PNG.
 image = { version = "0.25", default-features = false, features = ["png"] }
+# Only for the translation table check (i18n::untranslated).
+serde_json = "1"

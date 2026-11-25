@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_mcp"
-version = "1.0.1"
+version = "1.0.2"
 description = "Lets a local AI (Claude Code, Claude Desktop, LM Studio, any MCP client) read your Webex through Webox as MCP tools; sending only when allowed and confirmed."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/mcp"
