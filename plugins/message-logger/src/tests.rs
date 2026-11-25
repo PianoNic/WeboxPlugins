@@ -117,3 +117,80 @@ fn keep_args_follow_the_settings() {
     assert_eq!(p.log, Log::default());
     assert_eq!(p.settings_action("other"), None);
 }
+
+fn menu_ev(id: &str, deleted: bool) -> String { json!({ "space": "sp-Team", "id": id, "deleted": deleted, "edited": !deleted, "mine": false }).to_string() }
+fn menu_ids(p: &mut MessageLogger, id: &str, deleted: bool) -> Vec<String> {
+    p.on_event("message.menu", &menu_ev(id, deleted)).map_or(vec![], |a| v(&a)["items"].as_array().unwrap().iter().map(|i| s(i, "id").to_string()).collect())
+}
+fn pick(p: &mut MessageLogger, space: &str, id: &str, item: &str) -> Option<String> {
+    p.on_event("message.menu_action", &json!({ "space": space, "id": id, "item": item }).to_string())
+}
+
+#[test]
+fn the_menu_offers_what_the_log_holds() {
+    let mut p = with(Cfg::default());
+    // Nothing logged: nothing added to the menu.
+    assert!(menu_ids(&mut p, "m1", false).is_empty());
+    p.on_event("message.deleted", &deleted("m1", "Team", false));
+    p.on_event("message.edited", &edited("m2", "a", "b"));
+    assert_eq!(menu_ids(&mut p, "m1", true), ["forget-deleted", "clear-space"]);
+    assert_eq!(menu_ids(&mut p, "m2", false), ["toggle-history", "forget-history", "clear-space"]);
+    assert_eq!(menu_ids(&mut p, "m9", false), ["clear-space"], "any message of a space with a log");
+    let a = v(&p.on_event("message.menu", &menu_ev("m1", true)).unwrap());
+    assert_eq!(a["items"][0], json!({ "id": "forget-deleted", "label": "Gelöschte Nachricht entfernen", "icon": "delete-regular", "danger": true }));
+    assert_eq!(v(&p.on_event("message.menu", &menu_ev("m2", false)).unwrap())["items"][0]["label"], "Bearbeitungsverlauf ausblenden");
+    // Another space: nothing; menu entries switched off: nothing.
+    assert!(p.on_event("message.menu", &json!({ "space": "sp-Other", "id": "x", "deleted": false }).to_string()).is_none());
+    let mut off = with(Cfg { menu: false, ..Cfg::default() });
+    off.on_event("message.deleted", &deleted("m1", "Team", false));
+    assert!(menu_ids(&mut off, "m1", true).is_empty());
+}
+
+#[test]
+fn menu_actions_change_the_log_and_what_webox_keeps() {
+    let mut p = with(Cfg::default());
+    p.on_event("message.deleted", &deleted("m1", "Team", false));
+    p.on_event("message.deleted", &deleted("m5", "Privat", false));
+    p.on_event("message.edited", &edited("m2", "a", "b"));
+    p.on_event("message.edited", &edited("m3", "c", "d"));
+    // "Bearbeitungsverlauf ausblenden": still logged, no longer given to Webox; "anzeigen" brings it back.
+    assert_eq!(pick(&mut p, "sp-Team", "m2", "toggle-history"), None);
+    assert_eq!(p.log.keep_args(&p.cfg)["edited"], json!([{ "id": "m3", "history": ["c"] }]));
+    assert_eq!(v(&p.on_event("message.menu", &menu_ev("m2", false)).unwrap())["items"][0]["label"], "Bearbeitungsverlauf anzeigen");
+    pick(&mut p, "sp-Team", "m2", "toggle-history");
+    assert_eq!(p.log.keep_args(&p.cfg)["edited"].as_array().unwrap().len(), 2);
+    // "Bearbeitungsverlauf entfernen".
+    pick(&mut p, "sp-Team", "m3", "forget-history");
+    assert!(!p.log.is_edited("m3"));
+    // "Gelöschte Nachricht entfernen": no longer kept, so Webox removes it as usual.
+    pick(&mut p, "sp-Team", "m1", "forget-deleted");
+    assert_eq!(p.log.keep_args(&p.cfg)["deleted"].as_array().unwrap().iter().map(|r| s(r, "id").to_string()).collect::<Vec<_>>(), ["m5"]);
+    // "Protokoll dieses Bereichs leeren": only that space.
+    pick(&mut p, "sp-Team", "x", "clear-space");
+    assert!(p.log.edited.is_empty());
+    assert_eq!(p.log.deleted.len(), 1);
+    assert_eq!(s(&p.log.deleted[0], "space"), "sp-Privat");
+    // Unknown items and ids change nothing.
+    let before = p.log.clone();
+    pick(&mut p, "sp-Privat", "m5", "nope");
+    pick(&mut p, "sp-Privat", "zz", "forget-deleted");
+    assert_eq!(p.log, before);
+}
+
+#[test]
+fn edits_follow_the_equicord_options() {
+    // Own edits ignored: someone else's are still logged.
+    let mut p = with(Cfg { ignore_self_edits: true, ..Cfg::default() });
+    let mine = json!({ "space": "sp-Team", "space_name": "Team", "id": "m1", "author": "Ich", "mine": true, "old_text": "a", "new_text": "b" }).to_string();
+    assert_eq!(p.on_event("message.edited", &mine), None);
+    assert!(p.on_event("message.edited", &edited("m2", "a", "b")).is_some());
+    // Not shown in the message: logged, answered with no history, shown from the menu per message.
+    let mut p = with(Cfg { inline_edits: false, ..Cfg::default() });
+    assert_eq!(v(&p.on_event("message.edited", &edited("m1", "a", "b")).unwrap()), json!({ "history": [] }));
+    assert!(p.log.is_edited("m1"));
+    assert_eq!(p.log.keep_args(&p.cfg)["edited"], json!([]));
+    pick(&mut p, "sp-Team", "m1", "toggle-history");
+    assert_eq!(p.log.keep_args(&p.cfg)["edited"], json!([{ "id": "m1", "history": ["a"] }]));
+    // The toggles survive the round trip through the data store.
+    assert_eq!(Log::parse(&p.log.to_json()), p.log);
+}
