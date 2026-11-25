@@ -1,196 +1,204 @@
 use super::*;
 
 fn deleted(id: &str, space_name: &str, mine: bool) -> String {
-    json!({ "space": format!("sp-{space_name}"), "space_name": space_name, "id": id, "author": "Anna", "email": "anna@example.com", "text": format!("Text {id}"),
-        "mine": mine, "parent": "", "published_ms": 1000, "date": "2026-11-24", "time": "09:00" }).to_string()
+    json!({ "space": format!("sp-{space_name}"), "space_name": space_name, "team": "t1", "team_name": "Projekt", "id": id, "author": "Anna", "email": "anna@example.com",
+        "text": format!("Text {id}"), "mine": mine, "parent": "", "published_ms": 1000, "date": "2026-11-24", "time": "09:00" }).to_string()
 }
 fn edited(id: &str, old: &str, new: &str) -> String {
-    json!({ "space": "sp-Team", "space_name": "Team", "id": id, "author": "Anna", "mine": false, "old_text": old, "new_text": new }).to_string()
+    json!({ "space": "sp-Team", "space_name": "Team", "team": "", "team_name": "", "id": id, "author": "Anna", "email": "anna@example.com", "mine": false,
+        "published_ms": 1000, "old_edited": false, "old_text": old, "new_text": new }).to_string()
 }
 fn with(cfg: Cfg) -> MessageLogger { MessageLogger { cfg, ..Default::default() } }
 fn v(t: &str) -> Value { serde_json::from_str(t).unwrap() }
+fn ev(p: &mut MessageLogger, name: &str, payload: Value) -> Option<Value> { p.on_event(name, &payload.to_string()).map(|a| v(&a)) }
 
 #[test]
-fn defaults_match_the_schema() {
+fn defaults_match_the_schema_and_equicord() {
     assert_eq!(Cfg::from(&Values::parse("{}")), Cfg::default());
     let schema = v(&MessageLogger::default().settings().unwrap().to_json());
     let mut defaults = serde_json::Map::new();
+    let mut ids = vec![];
     for f in schema["sections"].as_array().unwrap().iter().flat_map(|s| s["fields"].as_array().unwrap()) {
+        ids.push(f["id"].as_str().unwrap().to_string());
         if let Some(d) = f.get("default") { defaults.insert(f["id"].as_str().unwrap().into(), d.clone()); }
     }
     assert_eq!(Cfg::from(&Values::parse(&Value::Object(defaults).to_string())), Cfg::default());
-    // Shown deleted messages and edits are on, restart persistence off.
+    // Every Equicord setting, under its Equicord name.
+    for k in ["deleteStyle", "logDeletes", "collapseDeleted", "logEdits", "inlineEdits", "logDeletedAttachments", "ignoreBots", "ignoreSelf", "ignoreSelfEdits",
+        "ignoreUsers", "ignoreChannels", "ignoreGuilds", "showEditDiffs", "separatedDiffs"] { assert!(ids.iter().any(|i| i == k), "{k}"); }
+    // Equicord's defaults: red text, log both, bots ignored, no diffs.
     let d = Cfg::default();
-    assert!(d.deletes && d.edits && !d.ignore_self && !d.persist && d.style == "text" && d.space_mode == "all");
-    let c = Cfg::from(&Values::parse(r#"{"style":"overlay","space_mode":"weird","spaces":" Team \n\n Projekt X "}"#));
-    assert_eq!((c.style.as_str(), c.space_mode.as_str(), c.spaces.clone()), ("overlay", "all", vec!["team".to_string(), "projekt x".to_string()]));
+    assert!(d.log_deletes && d.log_edits && d.inline && d.attachments && d.ignore_bots && !d.ignore_self && !d.collapse && !d.diffs && !d.separated && d.style == "text");
+    let c = Cfg::from(&Values::parse(r#"{"deleteStyle":"overlay","ignoreChannels":" Team \n\n Projekt X, sp-1 ","separatedDiffs":true}"#));
+    assert_eq!((c.style.as_str(), c.spaces.clone()), ("overlay", vec!["team".to_string(), "projekt x".to_string(), "sp-1".to_string()]));
+    assert!(!c.separated, "separated diffs only with diffs");
 }
 
 #[test]
-fn deleted_messages_are_kept_in_the_chosen_style() {
+fn deleted_messages_are_kept_as_the_settings_say() {
     let mut p = with(Cfg::default());
-    assert_eq!(p.on_event("message.deleted", &deleted("m1", "Team", false)).map(|a| v(&a)), Some(json!({ "keep": true, "style": "text" })));
-    let mut p2 = with(Cfg { style: "overlay".into(), ..Cfg::default() });
-    assert_eq!(p2.on_event("message.deleted", &deleted("m1", "Team", false)).map(|a| v(&a)), Some(json!({ "keep": true, "style": "overlay" })));
-    // The payload is logged as delivered (it is what message.keep needs after a restart); the same id once.
+    assert_eq!(p.on_event("message.deleted", &deleted("m1", "Team", false)).map(|a| v(&a)),
+        Some(json!({ "keep": true, "style": "text", "collapsed": false, "attachments": true })));
+    let mut p2 = with(Cfg { style: "overlay".into(), collapse: true, attachments: false, ..Cfg::default() });
+    assert_eq!(p2.on_event("message.deleted", &deleted("m1", "Team", false)).map(|a| v(&a)),
+        Some(json!({ "keep": true, "style": "overlay", "collapsed": true, "attachments": false })));
     p.on_event("message.deleted", &deleted("m1", "Team", false));
     assert_eq!(p.log.deleted, vec![v(&deleted("m1", "Team", false))]);
-    // Switched off, unreadable or without id: Webox deletes it as usual.
-    let mut off = with(Cfg { deletes: false, ..Cfg::default() });
+    let mut off = with(Cfg { log_deletes: false, ..Cfg::default() });
     assert_eq!(off.on_event("message.deleted", &deleted("m1", "Team", false)), None);
     assert!(off.log.deleted.is_empty());
     assert_eq!(p.on_event("message.deleted", "kaputt"), None);
     assert_eq!(p.on_event("message.deleted", r#"{"space":"s"}"#), None);
-    assert_eq!(p.on_event("other.event", &deleted("m2", "Team", false)), None);
 }
 
 #[test]
-fn own_messages_and_spaces_are_filtered() {
-    let mut p = with(Cfg { ignore_self: true, ..Cfg::default() });
-    assert_eq!(p.on_event("message.deleted", &deleted("m1", "Team", true)), None);
-    assert!(p.on_event("message.deleted", &deleted("m2", "Team", false)).is_some());
-    let allow = Cfg { space_mode: "allow".into(), spaces: vec!["team".into()], ..Cfg::default() };
-    let mut p = with(allow.clone());
-    assert!(p.on_event("message.deleted", &deleted("m1", "TEAM", false)).is_some(), "names compare case-insensitively");
-    assert_eq!(p.on_event("message.deleted", &deleted("m2", "Andere", false)), None);
-    // A line may also be the space id.
-    let mut p = with(Cfg { space_mode: "allow".into(), spaces: vec!["sp-andere".into()], ..Cfg::default() });
-    assert!(p.on_event("message.deleted", &deleted("m3", "Andere", false)).is_some());
-    let mut p = with(Cfg { space_mode: "deny".into(), ..allow });
-    assert_eq!(p.on_event("message.deleted", &deleted("m1", "Team", false)), None);
-    assert!(p.on_event("message.deleted", &deleted("m2", "Andere", false)).is_some());
-    assert_eq!(p.on_event("message.edited", &edited("m3", "a", "b")), None, "edits in Team are left out too");
+fn should_ignore_follows_equicord() {
+    let base = v(&deleted("m1", "Team", false));
+    let c = Cfg::default();
+    assert!(!c.ignores(&base, false));
+    let mut bot = base.clone();
+    bot["email"] = json!("helper@webex.bot");
+    assert!(c.ignores(&bot, false), "bots by default");
+    assert!(!Cfg { ignore_bots: false, ..Cfg::default() }.ignores(&bot, false));
+    let mut mine = base.clone();
+    mine["mine"] = json!(true);
+    assert!(Cfg { ignore_self: true, ..Cfg::default() }.ignores(&mine, false));
+    let self_edits = Cfg { ignore_self_edits: true, ..Cfg::default() };
+    assert!(self_edits.ignores(&mine, true) && !self_edits.ignores(&mine, false), "only own edits");
+    assert!(Cfg { users: vec!["anna".into()], ..Cfg::default() }.ignores(&base, false));
+    assert!(Cfg { users: vec!["anna@example.com".into()], ..Cfg::default() }.ignores(&base, false));
+    assert!(Cfg { spaces: vec!["team".into()], ..Cfg::default() }.ignores(&base, false));
+    assert!(Cfg { spaces: vec!["sp-team".into()], ..Cfg::default() }.ignores(&base, false), "a space id");
+    assert!(Cfg { teams: vec!["projekt".into()], ..Cfg::default() }.ignores(&base, false), "a team name");
+    assert!(Cfg { teams: vec!["t1".into()], ..Cfg::default() }.ignores(&base, false), "a team id");
+    assert!(!Cfg { teams: vec!["".into()], ..Cfg::default() }.ignores(&v(&edited("m2", "a", "b")), true), "no team: never an empty match");
+    assert!(Cfg { log_edits: false, ..Cfg::default() }.ignores(&base, true) && !Cfg { log_edits: false, ..Cfg::default() }.ignores(&base, false));
 }
 
 #[test]
-fn edits_collect_earlier_versions() {
+fn edits_collect_versions_with_their_times() {
     let mut p = with(Cfg::default());
     let h = |a: Option<String>| v(&a.unwrap())["history"].clone();
     assert_eq!(h(p.on_event("message.edited", &edited("m1", "eins", "eins!"))), json!(["eins"]));
     assert_eq!(h(p.on_event("message.edited", &edited("m1", "eins!", "eins?"))), json!(["eins", "eins!"]));
-    // The same edit again adds nothing; edited back to the first text: that one is current again.
     assert_eq!(h(p.on_event("message.edited", &edited("m1", "eins!", "eins?"))), json!(["eins", "eins!"]));
     assert_eq!(h(p.on_event("message.edited", &edited("m1", "eins?", "eins"))), json!(["eins!", "eins?"]));
-    assert_eq!(p.log.edited.len(), 1);
-    assert_eq!(p.log.edited[0]["space_name"], "Team");
-    let mut off = with(Cfg { edits: false, ..Cfg::default() });
-    assert_eq!(off.on_event("message.edited", &edited("m1", "a", "b")), None);
-    // At most MAX_VERSIONS earlier texts.
+    let r = &p.log.edited[0];
+    assert_eq!((r["current"].as_str(), r["published_ms"].as_i64()), (Some("eins"), Some(1000)));
+    assert!(r["history"].as_array().unwrap().iter().all(|x| x["ms"].as_i64().unwrap() > 0));
     for i in 0..30 { p.on_event("message.edited", &edited("m2", &format!("v{i}"), &format!("v{}", i + 1))); }
-    let last = h(p.on_event("message.edited", &edited("m2", "v30", "v31")));
-    assert_eq!(last.as_array().unwrap().len(), MAX_VERSIONS);
-    assert_eq!(last[MAX_VERSIONS - 1], "v30");
+    assert_eq!(h(p.on_event("message.edited", &edited("m2", "v30", "v31"))).as_array().unwrap().len(), MAX_VERSIONS);
+    // The first text Webox saw was already an edit: its time is not known.
+    let mut q = with(Cfg::default());
+    let mut e = v(&edited("m3", "b", "c"));
+    e["old_edited"] = json!(true);
+    q.on_event("message.edited", &e.to_string());
+    assert_eq!(q.log.edited[0]["history"][0]["ms"], 0);
+    // Off: nothing logged.
+    assert_eq!(with(Cfg { log_edits: false, ..Cfg::default() }).on_event("message.edited", &edited("m1", "a", "b")), None);
 }
 
 #[test]
-fn the_log_is_bounded_and_survives_a_round_trip() {
+fn inline_and_diff_views() {
+    // inlineEdits off: logged, only the tag.
+    let mut p = with(Cfg { inline: false, ..Cfg::default() });
+    assert_eq!(p.on_event("message.edited", &edited("m1", "Hallo Welt", "Hallo Leute")).map(|a| v(&a)), Some(json!({ "history": [], "inline": false })));
+    assert_eq!(p.log.edited.len(), 1);
+    // showEditDiffs: each earlier text against the next one.
+    let mut p = with(Cfg { diffs: true, ..Cfg::default() });
+    p.on_event("message.edited", &edited("m1", "watch", "watch this"));
+    let a = ev(&mut p, "message.edited", v(&edited("m1", "watch this", "watch this now"))).unwrap();
+    assert_eq!(a["history"], json!([[{ "text": "watch" }, { "text": " this", "kind": "added" }], [{ "text": "watch this" }, { "text": " now", "kind": "added" }]]));
+    assert!(a.get("current").is_none());
+    // separatedDiffs: the original with what was removed, the current text with what was added.
+    let mut p = with(Cfg { diffs: true, separated: true, ..Cfg::default() });
+    let a = ev(&mut p, "message.edited", v(&edited("m1", "prefix watch", "watch it"))).unwrap();
+    assert_eq!(a["history"], json!([[{ "text": "prefix ", "kind": "removed" }, { "text": "watch" }]]));
+    assert_eq!(a["current"], json!([{ "text": "watch" }, { "text": " it", "kind": "added" }]));
+}
+
+#[test]
+fn the_message_menu_matches_equicord() {
     let mut p = with(Cfg::default());
-    for i in 0..MAX + 5 { p.on_event("message.deleted", &deleted(&format!("m{i}"), "Team", false)); }
-    assert_eq!(p.log.deleted.len(), MAX);
-    assert_eq!(s(&p.log.deleted[0], "id"), "m5");
+    let labels = |p: &mut MessageLogger, id: &str, del: bool| ev(p, "message.menu", json!({ "space": "sp-Team", "id": id, "deleted": del, "edited": !del, "mine": false }))
+        .map(|a| a["items"].as_array().unwrap().iter().map(|i| i["label"].as_str().unwrap().to_string()).collect::<Vec<_>>()).unwrap_or_default();
+    assert!(labels(&mut p, "x", false).is_empty(), "no history: nothing added");
+    p.on_event("message.deleted", &deleted("d1", "Team", false));
     p.on_event("message.edited", &edited("e1", "a", "b"));
-    let back = Log::parse(&p.log.to_json());
-    assert_eq!(back, p.log);
-    assert_eq!(Log::parse(""), Log::default());
-    assert_eq!(Log::parse(r#"{"deleted":[{"text":"no id"}],"edited":"x"}"#), Log::default());
+    assert_eq!(labels(&mut p, "d1", true), ["Gelöscht-Markierung umschalten", "Nachrichtenverlauf löschen"]);
+    assert_eq!(labels(&mut p, "e1", false), ["Nachrichtenverlauf löschen"]);
+    p.cfg.diffs = true;
+    assert_eq!(labels(&mut p, "e1", false), ["Änderungsvergleich deaktivieren", "Nachrichtenverlauf löschen"]);
+    // Toggles are per message and session: the diff view goes, the highlight goes ("plain").
+    ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "e1", "item": "toggle-diff" }));
+    assert_eq!(labels(&mut p, "e1", false), ["Änderungsvergleich aktivieren", "Nachrichtenverlauf löschen"]);
+    assert_eq!(p.keep_args()["edited"][0]["history"], json!(["a"]), "no diff for it now");
+    ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "d1", "item": "toggle-deleted" }));
+    assert_eq!(p.keep_args()["deleted"][0]["style"], "plain");
+    ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "d1", "item": "toggle-deleted" }));
+    assert_eq!(p.keep_args()["deleted"][0]["style"], "text");
+    // Clear Message History: a deleted message is forgotten, an edited one loses its history.
+    ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "d1", "item": "clear-history" }));
+    ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "e1", "item": "clear-history" }));
+    assert!(p.log.deleted.is_empty() && p.log.edited.is_empty());
+    assert_eq!(p.keep_args(), json!({ "replace": true, "deleted": [], "edited": [] }));
 }
 
 #[test]
-fn keep_args_follow_the_settings() {
+fn the_space_menu_clears_that_spaces_log() {
+    let mut p = with(Cfg::default());
+    p.on_event("message.deleted", &deleted("d1", "Team", false));
+    p.on_event("message.deleted", &deleted("d2", "Andere", false));
+    assert_eq!(ev(&mut p, "space.menu", json!({ "space": "sp-Leer" })), None, "only where something is logged");
+    assert_eq!(ev(&mut p, "space.menu", json!({ "space": "sp-Team" })), Some(json!({ "items": [{ "id": "clear-log", "label": "Protokoll leeren", "danger": true }] })));
+    ev(&mut p, "space.menu_action", json!({ "space": "sp-Team", "item": "clear-log" }));
+    assert_eq!(p.log.deleted.iter().map(|r| s(r, "id")).collect::<Vec<_>>(), ["d2"]);
+}
+
+#[test]
+fn the_history_dialog_has_a_tab_per_version() {
+    let mut p = with(Cfg { diffs: true, ..Cfg::default() });
+    p.on_event("message.edited", &edited("m1", "Hallo", "Hallo Welt"));
+    p.on_event("message.edited", &edited("m1", "Hallo Welt", "Hallo Leute"));
+    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "m1", "text": "Hallo Leute", "published_ms": 1000 }));
+    assert_eq!(d["title"], "Bearbeitungsverlauf");
+    assert_eq!(d["switch"], json!({ "label": "Unterschiede anzeigen", "on": true }));
+    let tabs = d["tabs"].as_array().unwrap();
+    assert_eq!(tabs.len(), 3, "two earlier versions and the current one");
+    assert_eq!(d["selected"], 2);
+    assert_eq!((tabs[0]["time_ms"].as_i64(), tabs[0]["text"].as_str()), (Some(1000), Some("Hallo")));
+    assert_eq!(tabs[0]["alt"], json!([{ "text": "Hallo" }, { "text": " Leute", "kind": "added" }]), "against the newest version");
+    assert_eq!(tabs[2]["text"], "Hallo Leute");
+    assert!(tabs[2]["time_ms"].as_i64().unwrap() > 0 && tabs[2].get("alt").is_none());
+    // Nothing logged (or the original was never seen): a greyed tab for the original, then the current text.
+    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "zz", "text": "Jetzt", "published_ms": 500 }));
+    let tabs = d["tabs"].as_array().unwrap();
+    assert_eq!((tabs.len(), tabs[0]["disabled"].as_bool(), tabs[1]["text"].as_str()), (2, Some(true), Some("Jetzt")));
+    // A message whose diff view was switched off: no diff in the dialog either.
+    ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "m1", "item": "toggle-diff" }));
+    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "m1", "text": "Hallo Leute", "published_ms": 1000 }));
+    assert!(d["tabs"][0].get("alt").is_none() && d["switch"]["on"] == false);
+}
+
+#[test]
+fn settings_changes_apply_to_what_is_shown() {
     let mut p = with(Cfg::default());
     p.on_event("message.deleted", &deleted("m1", "Team", false));
-    p.on_event("message.deleted", &deleted("m2", "Privat", true));
-    p.on_event("message.edited", &edited("m3", "a", "b"));
-    let a = p.log.keep_args(&Cfg { style: "overlay".into(), ..Cfg::default() });
-    assert_eq!(a["replace"], true);
-    assert_eq!(a["deleted"].as_array().unwrap().iter().map(|r| (s(r, "id"), s(r, "style"))).collect::<Vec<_>>(), [("m1", "overlay"), ("m2", "overlay")]);
-    assert_eq!(a["deleted"][0]["text"], "Text m1");
-    assert_eq!(a["edited"], json!([{ "id": "m3", "history": ["a"] }]));
-    // Own messages ignored now, edits off: what Webox shows shrinks accordingly (the log itself keeps everything).
-    let a = p.log.keep_args(&Cfg { ignore_self: true, edits: false, ..Cfg::default() });
-    assert_eq!(a["deleted"].as_array().unwrap().len(), 1);
-    assert_eq!(a["edited"], json!([]));
-    let a = p.log.keep_args(&Cfg { deletes: false, ..Cfg::default() });
-    assert_eq!(a["deleted"], json!([]));
-    // "Protokoll leeren".
-    assert_eq!(p.settings_action("clear").as_deref(), Some("Protokoll geleert."));
-    assert_eq!(p.log, Log::default());
-    assert_eq!(p.settings_action("other"), None);
-}
-
-fn menu_ev(id: &str, deleted: bool) -> String { json!({ "space": "sp-Team", "id": id, "deleted": deleted, "edited": !deleted, "mine": false }).to_string() }
-fn menu_ids(p: &mut MessageLogger, id: &str, deleted: bool) -> Vec<String> {
-    p.on_event("message.menu", &menu_ev(id, deleted)).map_or(vec![], |a| v(&a)["items"].as_array().unwrap().iter().map(|i| s(i, "id").to_string()).collect())
-}
-fn pick(p: &mut MessageLogger, space: &str, id: &str, item: &str) -> Option<String> {
-    p.on_event("message.menu_action", &json!({ "space": space, "id": id, "item": item }).to_string())
+    p.on_event("message.edited", &edited("m2", "alt", "neu"));
+    let k = p.keep_args();
+    assert_eq!(k["deleted"][0]["style"], "text");
+    assert_eq!(k["edited"], json!([{ "id": "m2", "history": ["alt"] }]));
+    p.cfg = Cfg { style: "overlay".into(), collapse: true, attachments: false, ..Cfg::default() };
+    let k = p.keep_args();
+    assert_eq!((k["deleted"][0]["style"].as_str(), k["deleted"][0]["collapsed"].as_bool(), k["deleted"][0]["attachments"].as_bool()), (Some("overlay"), Some(true), Some(false)));
+    p.cfg = Cfg { log_deletes: false, spaces: vec!["team".into()], ..Cfg::default() };
+    assert_eq!(p.keep_args(), json!({ "replace": true, "deleted": [], "edited": [] }));
 }
 
 #[test]
-fn the_menu_offers_what_the_log_holds() {
-    let mut p = with(Cfg::default());
-    // Nothing logged: nothing added to the menu.
-    assert!(menu_ids(&mut p, "m1", false).is_empty());
-    p.on_event("message.deleted", &deleted("m1", "Team", false));
-    p.on_event("message.edited", &edited("m2", "a", "b"));
-    assert_eq!(menu_ids(&mut p, "m1", true), ["forget-deleted", "clear-space"]);
-    assert_eq!(menu_ids(&mut p, "m2", false), ["toggle-history", "forget-history", "clear-space"]);
-    assert_eq!(menu_ids(&mut p, "m9", false), ["clear-space"], "any message of a space with a log");
-    let a = v(&p.on_event("message.menu", &menu_ev("m1", true)).unwrap());
-    assert_eq!(a["items"][0], json!({ "id": "forget-deleted", "label": "Gelöschte Nachricht entfernen", "icon": "delete-regular", "danger": true }));
-    assert_eq!(v(&p.on_event("message.menu", &menu_ev("m2", false)).unwrap())["items"][0]["label"], "Bearbeitungsverlauf ausblenden");
-    // Another space: nothing; menu entries switched off: nothing.
-    assert!(p.on_event("message.menu", &json!({ "space": "sp-Other", "id": "x", "deleted": false }).to_string()).is_none());
-    let mut off = with(Cfg { menu: false, ..Cfg::default() });
-    off.on_event("message.deleted", &deleted("m1", "Team", false));
-    assert!(menu_ids(&mut off, "m1", true).is_empty());
-}
-
-#[test]
-fn menu_actions_change_the_log_and_what_webox_keeps() {
-    let mut p = with(Cfg::default());
-    p.on_event("message.deleted", &deleted("m1", "Team", false));
-    p.on_event("message.deleted", &deleted("m5", "Privat", false));
-    p.on_event("message.edited", &edited("m2", "a", "b"));
-    p.on_event("message.edited", &edited("m3", "c", "d"));
-    // "Bearbeitungsverlauf ausblenden": still logged, no longer given to Webox; "anzeigen" brings it back.
-    assert_eq!(pick(&mut p, "sp-Team", "m2", "toggle-history"), None);
-    assert_eq!(p.log.keep_args(&p.cfg)["edited"], json!([{ "id": "m3", "history": ["c"] }]));
-    assert_eq!(v(&p.on_event("message.menu", &menu_ev("m2", false)).unwrap())["items"][0]["label"], "Bearbeitungsverlauf anzeigen");
-    pick(&mut p, "sp-Team", "m2", "toggle-history");
-    assert_eq!(p.log.keep_args(&p.cfg)["edited"].as_array().unwrap().len(), 2);
-    // "Bearbeitungsverlauf entfernen".
-    pick(&mut p, "sp-Team", "m3", "forget-history");
-    assert!(!p.log.is_edited("m3"));
-    // "Gelöschte Nachricht entfernen": no longer kept, so Webox removes it as usual.
-    pick(&mut p, "sp-Team", "m1", "forget-deleted");
-    assert_eq!(p.log.keep_args(&p.cfg)["deleted"].as_array().unwrap().iter().map(|r| s(r, "id").to_string()).collect::<Vec<_>>(), ["m5"]);
-    // "Protokoll dieses Bereichs leeren": only that space.
-    pick(&mut p, "sp-Team", "x", "clear-space");
-    assert!(p.log.edited.is_empty());
-    assert_eq!(p.log.deleted.len(), 1);
-    assert_eq!(s(&p.log.deleted[0], "space"), "sp-Privat");
-    // Unknown items and ids change nothing.
-    let before = p.log.clone();
-    pick(&mut p, "sp-Privat", "m5", "nope");
-    pick(&mut p, "sp-Privat", "zz", "forget-deleted");
-    assert_eq!(p.log, before);
-}
-
-#[test]
-fn edits_follow_the_equicord_options() {
-    // Own edits ignored: someone else's are still logged.
-    let mut p = with(Cfg { ignore_self_edits: true, ..Cfg::default() });
-    let mine = json!({ "space": "sp-Team", "space_name": "Team", "id": "m1", "author": "Ich", "mine": true, "old_text": "a", "new_text": "b" }).to_string();
-    assert_eq!(p.on_event("message.edited", &mine), None);
-    assert!(p.on_event("message.edited", &edited("m2", "a", "b")).is_some());
-    // Not shown in the message: logged, answered with no history, shown from the menu per message.
-    let mut p = with(Cfg { inline_edits: false, ..Cfg::default() });
-    assert_eq!(v(&p.on_event("message.edited", &edited("m1", "a", "b")).unwrap()), json!({ "history": [] }));
-    assert!(p.log.is_edited("m1"));
-    assert_eq!(p.log.keep_args(&p.cfg)["edited"], json!([]));
-    pick(&mut p, "sp-Team", "m1", "toggle-history");
-    assert_eq!(p.log.keep_args(&p.cfg)["edited"], json!([{ "id": "m1", "history": ["a"] }]));
-    // The toggles survive the round trip through the data store.
-    assert_eq!(Log::parse(&p.log.to_json()), p.log);
+fn a_1_1_log_still_loads() {
+    let l = Log::parse(r#"{"deleted":[{"id":"d1","space":"s"}],"edited":[{"id":"e1","space":"s","history":["eins","zwei"]}],"toggled":["e1"]}"#);
+    assert_eq!(l.edited[0]["history"], json!([{ "text": "eins", "ms": 0 }, { "text": "zwei", "ms": 0 }]));
+    assert_eq!(Log::parse(&l.to_json()), l);
+    assert_eq!(Log::parse("kaputt"), Log::default());
 }
