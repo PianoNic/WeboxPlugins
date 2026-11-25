@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_auto_reply"
-version = "1.0.2"
+version = "1.0.3"
 description = "Answers incoming messages in your own words: Claude Code, Codex, Cursor or your own endpoint imitates your writing style."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/auto-reply"

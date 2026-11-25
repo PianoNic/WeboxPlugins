@@ -120,6 +120,14 @@ mod i18n_tests {
         let s = Pride::default().settings().unwrap().to_json();
         assert_eq!(i18n::untranslated(&s, &[]), Vec::<String>::new());
     }
+    #[test]
+    fn the_event_answers_german_and_nothing_for_other_languages() {
+        let mut p = Pride::default();
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"fr","fallbacks":["fr_FR","fr"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        assert_eq!(p.on_event("i18n.strings", r#"{"lang":"en","fallbacks":["en_US","en"]}"#).as_deref(), Some("{\"strings\":{}}"));
+        let de: serde_json::Value = serde_json::from_str(&i18n::answer("de_CH")).unwrap();
+        assert_eq!(de["strings"]["Rainbow"], "Regenbogen");
+    }
 }
 
 #[cfg(test)]

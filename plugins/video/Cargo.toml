@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_video"
-version = "1.0.1"
+version = "1.0.2"
 description = "More camera options: a video file or a picture instead of the camera, a blurred or replaced background, mirror, brightness and contrast, a soft-focus face filter, your name on screen and a low-light boost. Everything runs on this computer."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/video"

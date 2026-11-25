@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_who_reacted"
-version = "1.0.1"
+version = "1.0.2"
 description = "Shows small avatars of the people who reacted next to each reaction, with their names on hover."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/who-reacted"

@@ -2,7 +2,7 @@
 //! `translations/<lang>.tsv` holds `English<TAB>translation` lines (`\n` for a line break). Webox applies the table to what it
 //! draws from the plugin (name, description, settings, menus, dialogs, toasts); [`t`] translates the texts the plugin builds
 //! itself. A Webox without the event never sends it, and everything stays English.
-use collabhost_plugin_api::{json_str, Values};
+use collabhost_plugin_api::{json_str, Host, Values};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
@@ -29,16 +29,26 @@ fn pick(lang: &str) -> Option<usize> {
 }
 
 /// The answer to `i18n.strings` for a language code (`{"strings": {...}}`, empty for a language without a table).
-fn answer(lang: &str) -> String {
+pub(crate) fn answer(lang: &str) -> String {
     let body: Vec<String> = pick(lang).map(table).into_iter().flatten().map(|(e, t)| format!("{}:{}", json_str(e), json_str(t))).collect();
     format!("{{\"strings\":{{{}}}}}", body.join(","))
 }
 
-/// Handles the `i18n.strings` event: remembers the language for [`t`] and returns the answer.
-pub fn strings(payload: &str) -> String {
+/// Remembers the language of an `{"lang", "fallbacks"}` object for [`t`]; returns the code.
+fn remember(payload: &str) -> String {
     let lang = Values::parse(payload).text("lang").unwrap_or("").to_string();
     ACTIVE.store(pick(&lang).map_or(0, |i| i + 1), Ordering::Relaxed);
-    answer(&lang)
+    lang
+}
+
+/// Handles the `i18n.strings` event: remembers the language for [`t`] and returns the answer.
+pub fn strings(payload: &str) -> String { answer(&remember(payload)) }
+
+/// Asks Webox for the active language (`i18n.language`), for texts built at run time. A Webox without the method keeps
+/// what the last `i18n.strings` event said (or English).
+#[allow(dead_code)] // only for plugins that build texts at run time
+pub fn sync(host: Host) {
+    if let Some(r) = host.call("i18n.language", "{}") { remember(&r); }
 }
 
 /// `en` in the active language (unchanged when there is no translation). Placeholders like `{name}` are filled by the caller.

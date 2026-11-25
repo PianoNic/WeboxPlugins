@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_pride_theme"
-version = "1.6.1"
+version = "1.6.2"
 description = "Rainbow accents across Webox, in the colours of the Pride flag."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/pride-theme"
