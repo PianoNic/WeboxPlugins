@@ -79,7 +79,7 @@ impl Worker {
         let (tx, jobs) = std::sync::mpsc::sync_channel::<Vec<f32>>(1);
         let (done, rx) = std::sync::mpsc::channel();
         let thread = std::thread::Builder::new().name("video-segmentation".into()).spawn(move || {
-            let mut s = match Segmenter::new() { Ok(s) => s, Err(e) => { let _ = done.send(Err(format!("Modell lädt nicht: {e}"))); return; } };
+            let mut s = match Segmenter::new() { Ok(s) => s, Err(e) => { let _ = done.send(Err(format!("model does not load: {e}"))); return; } };
             while let Ok(input) = jobs.recv() {
                 let t = std::time::Instant::now();
                 let r = s.infer(&input).map_err(|e| e.to_string());

@@ -1,24 +1,24 @@
 # Video
 
 More camera options for Webox. Everything is off by default, and everything runs on this computer: no picture goes
-anywhere except, as usual, into the call. The effects show in the preview under Einstellungen > Video.
+anywhere except, as usual, into the call. The effects show in the preview under Settings > Video.
 
 | Setting | What it does |
 |---|---|
-| Videoquelle: Kamera / Videodatei / Bild, Datei | A video file (looping, at its own frame rate) or a picture instead of the camera. The camera stays off. Webox decodes the file with the system's own video framework (Media Foundation, GStreamer, AVFoundation), so what plays inline in Webox works here too. |
-| Hintergrund: Aus / Weichzeichnen / Bild / Video, Hintergrunddatei, Stärke | Finds you in the picture and blurs everything behind you, or replaces it with a picture or a looping video. |
-| Spiegeln | The others see you mirrored (your own preview in Webox is mirrored anyway). |
-| Helligkeit, Kontrast | -100..100, 0 = unchanged. |
-| Weichzeichner fürs Gesicht | Smooths skin and flat areas, keeps edges sharp; only on you when a background effect is on. |
-| Name einblenden | Your name as a lower third, bottom left. |
-| Restlicht-Verstärkung | Brightens a dark picture automatically (at most 3x, eased in, never darkens). |
+| Video source: Camera / Video file / Picture, File | A video file (looping, at its own frame rate) or a picture instead of the camera. The camera stays off. Webox decodes the file with the system's own video framework (Media Foundation, GStreamer, AVFoundation), so what plays inline in Webox works here too. |
+| Background: Off / Blur / Picture / Video, Background file, Blur strength | Finds you in the picture and blurs everything behind you, or replaces it with a picture or a looping video. |
+| Mirror | The others see you mirrored (your own preview in Webox is mirrored anyway). |
+| Brightness, Contrast | -100..100, 0 = unchanged. |
+| Soft focus for the face | Smooths skin and flat areas, keeps edges sharp; only on you when a background effect is on. |
+| Show name | Your name as a lower third, bottom left. |
+| Low-light boost | Brightens a dark picture automatically (at most 3x, eased in, never darkens). |
 
 ## How it works
 
 It needs Webox with plugin-api 1.6.1 (contract 1.6): the host methods `camera.filter`, `camera.source` and `media.*`
 (Webox `docs/plugins.md`, "Camera pictures"). On an older Webox it says so in a toast and does nothing.
 
-- **Videoquelle** is `camera.source`: Webox itself opens the file in place of the camera.
+- **Video source** is `camera.source`: Webox itself opens the file in place of the camera.
 - **Every other effect** runs in a frame filter (`Host::camera_filter`) that Webox calls once per camera picture with the
   full-size RGBA frame, on a thread of its own, under a 20 ms budget. A frame the plugin does not finish in time is skipped
   (Webox shows the previous one), so the camera never stutters because of the plugin. The filter is only registered
@@ -38,13 +38,13 @@ Per 1280 x 720 frame, release build (median of 30 runs; `cargo test --release -p
 
 | Effect | ms |
 |---|---|
-| Helligkeit / Kontrast | 1.0 |
-| Restlicht-Verstärkung | 0.9 |
-| Spiegeln | 0.7 |
-| Weichzeichner fürs Gesicht (100) | 5.9 |
-| Name einblenden | 0.05 |
-| Hintergrund weichzeichnen (without the model) | 3.3 |
-| Hintergrundbild (without the model) | 1.1 |
+| Brightness / Contrast | 1.0 |
+| Low-light boost | 0.9 |
+| Mirror | 0.7 |
+| Soft focus for the face (100) | 5.9 |
+| Show name | 0.05 |
+| Background blur (without the model) | 3.3 |
+| Picture background (without the model) | 1.1 |
 | Segmentation input + mask smoothing (in the filter) | 0.2 |
 | Everything on with a picture background (in the filter) | 6.9 |
 | Segmentation model, on its own thread | 24 (load once: 80) |

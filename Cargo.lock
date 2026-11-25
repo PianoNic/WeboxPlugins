@@ -162,7 +162,7 @@ source = "git+https://github.com/PianoNic/Webox?branch=main#5269b194f4f14e71bd15
 
 [[package]]
 name = "collabhost_auto_reply"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "collabhost-plugin-api",
  "serde_json",
@@ -170,7 +170,7 @@ dependencies = [
 
 [[package]]
 name = "collabhost_mcp"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "collabhost-plugin-api",
  "serde_json",
@@ -178,7 +178,7 @@ dependencies = [
 
 [[package]]
 name = "collabhost_message_logger"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "collabhost-plugin-api",
  "serde_json",
@@ -186,21 +186,21 @@ dependencies = [
 
 [[package]]
 name = "collabhost_pride_theme"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
  "collabhost-plugin-api",
 ]
 
 [[package]]
 name = "collabhost_slash_commands"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
  "collabhost-plugin-api",
 ]
 
 [[package]]
 name = "collabhost_video"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "ab_glyph",
  "collabhost-plugin-api",
@@ -210,7 +210,7 @@ dependencies = [
 
 [[package]]
 name = "collabhost_who_reacted"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "collabhost-plugin-api",
  "serde_json",

@@ -1,4 +1,4 @@
-# Wer hat reagiert
+# Who Reacted
 
 Shows who reacted without opening the list: next to each reaction chip on a message, small round avatars of the people
 who reacted that way (photo, or initials without one), slightly overlapping, up to a limit and then "+N". Hovering an
@@ -10,10 +10,10 @@ only switches them on and configures them through the host method `reactions.sho
 
 | Setting | Default | Meaning |
 |---|---|---|
-| Avatare anzeigen | on | show the avatars at all |
-| Höchstens anzeigen | 3 | at most this many avatars per reaction (1-10); the rest is "+N" |
-| Größe | Klein | Klein (14 pt) or Mittel (18 pt) |
-| Eigene Reaktion ausblenden | off | leave your own avatar out (and out of "+N") |
+| Show avatars | on | show the avatars at all |
+| Show at most | 3 | at most this many avatars per reaction (1-10); the rest is "+N" |
+| Size | Small | Small (14 pt) or Medium (18 pt) |
+| Hide your own reaction | off | leave your own avatar out (and out of "+N") |
 
 On a Webox that does not offer `reactions.show_avatars` it says so in a toast and does nothing else.
 

@@ -56,22 +56,22 @@ nothing:
 
 ### Settings
 
-A plugin can have settings that the user changes on its page in Webox (**Einstellungen > Plugins > your plugin >
-Einstellungen**). Declare them, and Webox draws the form, validates and saves the values, and tells the plugin:
+A plugin can have settings that the user changes on its page in Webox (**Settings > Plugins > your plugin >
+Settings**). Declare them, and Webox draws the form, validates and saves the values, and tells the plugin:
 
 ```rust
 use collabhost_plugin_api::{Schema, Values};
 
 fn settings(&self) -> Option<Schema> {
     Some(Schema::new()
-        .section("Ersetzungen", "Was beim Senden ersetzt wird.")
-        .toggle("smiley", "„:)“ durch 🙂 ersetzen", "", true)            // on / off
-        .text("shrug_text", "Text für /shrug", "", "¯\\_(ツ)_/¯")         // one line
-        .multiline("notes", "Notizen", "", "")                           // text area
-        .password("token", "API-Schlüssel", "")                          // masked, kept in the OS keyring
-        .number("delay", "Verzögerung (s)", "", 2.0, 0.0, 10.0, 0.5)     // default, min, max, step
-        .choice("mode", "Modus", "", "a", &[("a", "Einfach"), ("b", "Genau")])
-        .button("reset_count", "Zähler zurücksetzen", ""))               // calls settings_action
+        .section("Replacements", "What is replaced when sending.")
+        .toggle("smiley", "Replace \":)\" with 🙂", "", true)          // on / off
+        .text("shrug_text", "Text for /shrug", "", "¯\\_(ツ)_/¯")         // one line
+        .multiline("notes", "Notes", "", "")                             // text area
+        .password("token", "API key", "")                                // masked, kept in the OS keyring
+        .number("delay", "Delay (s)", "", 2.0, 0.0, 10.0, 0.5)           // default, min, max, step
+        .choice("mode", "Mode", "", "a", &[("a", "Simple"), ("b", "Exact")])
+        .button("reset_count", "Reset counter", ""))                     // calls settings_action
 }
 
 // All values, every time something changes and once before every start.
@@ -81,13 +81,13 @@ fn settings_changed(&mut self, v: &Values) {
 }
 
 // A button was pressed: an optional message for a toast.
-fn settings_action(&mut self, id: &str) -> Option<String> { (id == "reset_count").then(|| "Zähler zurückgesetzt".into()) }
+fn settings_action(&mut self, id: &str) -> Option<String> { (id == "reset_count").then(|| "Counter reset".into()) }
 ```
 
 - Give the fields in `Default` the same defaults as the schema. Webox sends the saved values before `start`.
 - Keep the `id`s stable. A renamed id loses the saved value, and a value that no longer fits the schema falls back to the
   default.
-- Labels are shown as written. Webox's UI is German, so German labels fit best.
+- Write labels, descriptions, toasts and errors in English. Labels are shown as written.
 - `host.settings()` returns the current values at any time.
 - Settings need contract 1.2, accent themes 1.3, decorations 1.4.
 
@@ -118,13 +118,13 @@ cargo build --release -p collabhost_my_plugin
 ```
 
 To try it in Webox, copy `target/release/collabhost_my_plugin.dll` (Linux: `libcollabhost_my_plugin.so`) into Webox's
-plugin folder (**Einstellungen > Plugins > Plugin-Ordner öffnen**) and press **Neu laden**.
+plugin folder (**Settings > Plugins > Open plugin folder**) and press **Reload**.
 
 ## 5. Open a pull request
 
 Use a conventional commit title in the past tense, e.g. `feat: added My Plugin`. CI builds the plugin for Windows and
-Linux. After the merge it appears in every Webox under **Verfügbar** within a day, or right away after
-**Aktualisieren**.
+Linux. After the merge it appears in every Webox under **Available** within a day, or right away after
+**Update**.
 
 ## Updating a plugin
 

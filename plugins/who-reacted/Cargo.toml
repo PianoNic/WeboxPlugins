@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_who_reacted"
-version = "1.0.0"
+version = "1.0.1"
 description = "Shows small avatars of the people who reacted next to each reaction, with their names on hover."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/who-reacted"
@@ -10,7 +10,7 @@ repository.workspace = true
 
 # What the repository index says about this plugin (docs: CONTRIBUTING.md).
 [package.metadata.webox]
-name = "Wer hat reagiert"
+name = "Who Reacted"
 pkg = "dev.webox.plugins.who-reacted"
 
 [lib]

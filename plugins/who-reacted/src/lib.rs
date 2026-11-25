@@ -1,4 +1,4 @@
-//! Wer hat reagiert: small round avatars of the people who reacted, right after each reaction chip's count, up to a limit
+//! Who Reacted: small round avatars of the people who reacted, right after each reaction chip's count, up to a limit
 //! and then "+N", with the name on hover (like Equicord's WhoReacted). Webox draws them; the plugin turns them on and
 //! configures them through the host method `reactions.show_avatars`, in `start` and on every settings change.
 use collabhost_plugin_api::{export_plugin, Host, Plugin, Schema, Values};
@@ -52,14 +52,14 @@ impl WhoReacted {
 }
 
 impl Plugin for WhoReacted {
-    const NAME: &'static str = "Wer hat reagiert";
+    const NAME: &'static str = "Who Reacted";
     const AUTHOR: &'static str = "Webox examples";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
 
     fn start(&mut self, host: Host) {
         if !host.has(METHOD) {
-            host.toast("Diese Webox-Version kann keine Avatare an Reaktionen zeigen (reactions.show_avatars fehlt). Bitte Webox aktualisieren.");
+            host.toast("This Webox version cannot show avatars on reactions (reactions.show_avatars is missing). Please update Webox.");
         }
         self.host = Some(host);
         self.apply();
@@ -69,11 +69,11 @@ impl Plugin for WhoReacted {
 
     fn settings(&self) -> Option<Schema> {
         Some(Schema::new()
-            .section("Wer hat reagiert", "Zeigt neben jeder Reaktion kleine Avatare der Personen, die so reagiert haben. Der Name erscheint beim Darüberfahren.")
-            .toggle("on", "Avatare anzeigen", "", true)
-            .number("max", "Höchstens anzeigen", "Weitere Personen erscheinen als „+N“.", 3.0, 1.0, 10.0, 1.0)
-            .choice("size", "Größe", "", "small", &[("small", "Klein"), ("medium", "Mittel")])
-            .toggle("hide_self", "Eigene Reaktion ausblenden", "Ihr eigener Avatar erscheint nicht.", false))
+            .section("Who Reacted", "Shows small avatars of the people who reacted next to each reaction. The name shows on hover.")
+            .toggle("on", "Show avatars", "", true)
+            .number("max", "Show at most", "More people show as \"+N\".", 3.0, 1.0, 10.0, 1.0)
+            .choice("size", "Size", "", "small", &[("small", "Small"), ("medium", "Medium")])
+            .toggle("hide_self", "Hide your own reaction", "Your own avatar is left out.", false))
     }
     fn settings_changed(&mut self, v: &Values) {
         self.cfg = Cfg::from(v);

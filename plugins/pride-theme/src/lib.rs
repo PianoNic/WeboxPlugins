@@ -12,15 +12,15 @@ use collabhost_plugin_api::{export_plugin, Accents, Decor, Plugin, Schema, Theme
 
 /// (setting value, label, stripes top to bottom as 0xRRGGBB): the flags' standard colours.
 pub const FLAGS: [(&str, &str, &[u32]); 8] = [
-    ("rainbow", "Regenbogen", &[0xE40303, 0xFF8C00, 0xFFED00, 0x008026, 0x004DFF, 0x750787]),
+    ("rainbow", "Rainbow", &[0xE40303, 0xFF8C00, 0xFFED00, 0x008026, 0x004DFF, 0x750787]),
     // Progress Pride: the rainbow plus the chevron (white, pink, light blue, brown, black)
     ("progress", "Progress Pride", &[0xE40303, 0xFF8C00, 0xFFED00, 0x008026, 0x004DFF, 0x750787, 0xFFFFFF, 0xF5A9B8, 0x5BCEFA, 0x613915, 0x000000]),
     ("trans", "Trans", &[0x5BCEFA, 0xF5A9B8, 0xFFFFFF, 0xF5A9B8, 0x5BCEFA]),
     ("bi", "Bi", &[0xD60270, 0xD60270, 0x9B4F96, 0x0038A8, 0x0038A8]),
-    ("lesbian", "Lesbisch", &[0xD52D00, 0xEF7627, 0xFF9A56, 0xFFFFFF, 0xD162A4, 0xB55690, 0xA30262]),
+    ("lesbian", "Lesbian", &[0xD52D00, 0xEF7627, 0xFF9A56, 0xFFFFFF, 0xD162A4, 0xB55690, 0xA30262]),
     ("pan", "Pan", &[0xFF218C, 0xFFD800, 0x21B1FF]),
-    ("nonbinary", "Nicht-binär", &[0xFCF434, 0xFFFFFF, 0x9C59D1, 0x2C2C2C]),
-    ("ace", "Asexuell", &[0x000000, 0xA3A3A3, 0xFFFFFF, 0x800080]),
+    ("nonbinary", "Non-binary", &[0xFCF434, 0xFFFFFF, 0x9C59D1, 0x2C2C2C]),
+    ("ace", "Asexual", &[0x000000, 0xA3A3A3, 0xFFFFFF, 0x800080]),
 ];
 
 struct Pride { flag: usize, gradient: bool, wash_window: bool, wash_cards: bool, flags: u64 }
@@ -81,15 +81,15 @@ impl Plugin for Pride {
     fn settings(&self) -> Option<Schema> {
         let opts: Vec<(&str, &str)> = FLAGS.iter().map(|(v, l, _)| (*v, *l)).collect();
         let mut s = Schema::new()
-            .section("Flagge", "Alle Farben, Hintergründe und Dekorationen kommen aus dieser Flagge. Text bleibt immer gut lesbar.")
-            .choice("flag", "Flagge", "", "rainbow", &opts)
-            .toggle("gradient", "Fokuslinie als Verlauf", "Die Linie über dem Eingabefeld in allen Farben der Flagge.", true)
-            .section("Hintergründe", "So kräftig, wie es der Text darauf zulässt (WCAG AA).")
-            .toggle("wash_window", "Schleier hinter Seitenleiste und Kopfzeile", "Ein sanfter diagonaler Verlauf der Flagge.", true)
-            .toggle("wash_cards", "Liste und Unterhaltung", "Ein Hauch der Flagge und ein farbiger Rand; unter Nachrichten besonders zurückhaltend.", true)
-            .section("Dekorationen", "");
+            .section("Flag", "All colours, backgrounds and decorations come from this flag. Text always stays easy to read.")
+            .choice("flag", "Flag", "", "rainbow", &opts)
+            .toggle("gradient", "Focus line as a gradient", "The line above the message field in all the colours of the flag.", true)
+            .section("Backgrounds", "As strong as the text on them allows (WCAG AA).")
+            .toggle("wash_window", "Wash behind the sidebar and header", "A soft diagonal gradient of the flag.", true)
+            .toggle("wash_cards", "List and conversation", "A hint of the flag and a coloured rim; especially subtle behind messages.", true)
+            .section("Decorations", "");
         for (id, label, desc, bit, def) in decor::TOGGLES { if !decor::is_effect(bit) { s = s.toggle(id, label, desc, def); } }
-        s = s.section("Effekte", "Kurz und ohne Eingaben zu blockieren; aus, wenn Windows weniger Animationen verlangt.");
+        s = s.section("Effects", "Short and never blocking input; off when Windows asks for fewer animations.");
         for (id, label, desc, bit, def) in decor::TOGGLES { if decor::is_effect(bit) { s = s.toggle(id, label, desc, def); } }
         Some(s)
     }

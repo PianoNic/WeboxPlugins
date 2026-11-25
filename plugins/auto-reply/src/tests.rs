@@ -13,9 +13,9 @@ fn llm(p: Provider) -> Llm { Llm { provider: p, ..Llm::default() } }
 
 #[test]
 fn history_json_is_read_and_bad_entries_dropped() {
-    let h = parse_history(r#"{"messages":[{"author":"Anna","mine":false,"text":"Hi"},{"author":"Ich","mine":true,"text":"Hey"},{"author":1}]}"#);
-    assert_eq!(h, vec![m("Anna", false, "Hi"), m("Ich", true, "Hey")]);
-    assert!(parse_history("kein json").is_empty());
+    let h = parse_history(r#"{"messages":[{"author":"Anna","mine":false,"text":"Hi"},{"author":"Me","mine":true,"text":"Hey"},{"author":1}]}"#);
+    assert_eq!(h, vec![m("Anna", false, "Hi"), m("Me", true, "Hey")]);
+    assert!(parse_history("not json").is_empty());
 }
 
 #[test]
@@ -30,26 +30,26 @@ fn message_received_payload_is_read() {
 
 #[test]
 fn style_examples_prefer_this_chat_skip_repeats_and_own_replies() {
-    let hist = vec![m("Ich", true, "jo passt"), m("Anna", false, "Kommst du?"), m("Ich", true, "bin gleich da 👍"), m("Ich", true, "jo passt"), m("Ich", true, "  ")];
-    let pool = vec!["älter".to_string(), "Moin!".to_string(), "bin gleich da 👍".to_string()];
-    let produced = vec!["Moin!".to_string()];
+    let hist = vec![m("Me", true, "yep fine"), m("Anna", false, "Are you coming?"), m("Me", true, "on my way 👍"), m("Me", true, "yep fine"), m("Me", true, "  ")];
+    let pool = vec!["older".to_string(), "Morning!".to_string(), "on my way 👍".to_string()];
+    let produced = vec!["Morning!".to_string()];
     // Newest first: this conversation, then the pool (newest first), no repeats, no empty ones, no own auto-replies.
-    assert_eq!(style_examples(&hist, &pool, &produced), vec!["jo passt", "bin gleich da 👍", "älter"]);
-    let many: Vec<Msg> = (0..60).map(|i| m("Ich", true, &format!("n{i}"))).collect();
+    assert_eq!(style_examples(&hist, &pool, &produced), vec!["yep fine", "on my way 👍", "older"]);
+    let many: Vec<Msg> = (0..60).map(|i| m("Me", true, &format!("n{i}"))).collect();
     let s = style_examples(&many, &[], &[]);
     assert_eq!((s.len(), s[0].as_str()), (llm::STYLE, "n59"));
 }
 
 #[test]
 fn prompt_has_style_context_and_the_message_to_answer() {
-    let mut hist: Vec<Msg> = (0..40).map(|i| m("Anna", false, &format!("alt{i}"))).collect();
-    hist.push(m("Ich", true, "ok mach ich"));
-    hist.push(m("Anna", false, "Und morgen\num 9?"));
-    let p = user_prompt(&hist, &["jo passt".into()]);
-    assert!(p.contains("- jo passt\n"));
-    assert!(p.contains("USER: ok mach ich\nAnna: Und morgen\n  um 9?\n"), "{p}");
+    let mut hist: Vec<Msg> = (0..40).map(|i| m("Anna", false, &format!("old{i}"))).collect();
+    hist.push(m("Me", true, "ok will do"));
+    hist.push(m("Anna", false, "And tomorrow\nat 9?"));
+    let p = user_prompt(&hist, &["yep fine".into()]);
+    assert!(p.contains("- yep fine\n"));
+    assert!(p.contains("USER: ok will do\nAnna: And tomorrow\n  at 9?\n"), "{p}");
     // Only the last 30 messages as context.
-    assert!(!p.contains("alt11\n") && p.contains("alt12\n"));
+    assert!(!p.contains("old11\n") && p.contains("old12\n"));
     assert!(p.ends_with("Write USER's reply to Anna's last message, or NO_REPLY."));
     assert!(user_prompt(&[m("A", false, "x")], &[]).contains("(none yet"));
     // The system prompt asks for the things the reply depends on.
@@ -58,8 +58,8 @@ fn prompt_has_style_context_and_the_message_to_answer() {
 
 #[test]
 fn answers_are_cleaned_and_no_reply_respected() {
-    assert_eq!(clean("  \"Klar, bis gleich!\"\n").as_deref(), Some("Klar, bis gleich!"));
-    assert_eq!(clean("USER: jo").as_deref(), Some("jo"));
+    assert_eq!(clean("  \"Sure, see you soon!\"\n").as_deref(), Some("Sure, see you soon!"));
+    assert_eq!(clean("USER: yep").as_deref(), Some("yep"));
     assert_eq!(clean("NO_REPLY"), None);
     assert_eq!(clean("  "), None);
 }
@@ -68,17 +68,17 @@ fn answers_are_cleaned_and_no_reply_respected() {
 fn guards_skip_own_groups_people_pending_and_cooldown() {
     let now = Instant::now();
     let st = State::default();
-    let dm = nm("s1", "Anna", "Hast du kurz Zeit?", DIRECT);
+    let dm = nm("s1", "Anna", "Got a minute?", DIRECT);
     assert!(should_reply(&on(), &st, &dm, now));
     assert!(!should_reply(&Cfg::default(), &st, &dm, now), "off by default");
-    assert!(!should_reply(&on(), &st, &nm("s1", "Ich", "hi", DIRECT | MINE), now), "never my own message");
+    assert!(!should_reply(&on(), &st, &nm("s1", "Me", "hi", DIRECT | MINE), now), "never my own message");
     assert!(!should_reply(&on(), &st, &nm("s1", "Anna", " ", DIRECT), now));
     // Groups: only with the scope set and only when mentioned.
-    let group = nm("g", "Anna", "@Ich schaust du?", MENTIONED);
+    let group = nm("g", "Anna", "@Me can you look?", MENTIONED);
     assert!(!should_reply(&on(), &st, &group, now));
     let groups = Cfg { groups: true, ..on() };
     assert!(should_reply(&groups, &st, &group, now));
-    assert!(!should_reply(&groups, &st, &nm("g", "Anna", "an alle", 0), now));
+    assert!(!should_reply(&groups, &st, &nm("g", "Anna", "to everyone", 0), now));
     // Allow / deny list, by display name, case-insensitive.
     let allow = Cfg { people_mode: "allow".into(), people: vec!["anna".into()], ..on() };
     assert!(should_reply(&allow, &st, &dm, now));
@@ -130,7 +130,7 @@ fn codex_invocation_and_output() {
     let i = l.invocation("PROMPT").unwrap();
     assert_eq!(i.args, ["exec", "--skip-git-repo-check", "--sandbox", "read-only", "--color", "never", "-m", "gpt-5", "-"]);
     assert!(i.stdin.starts_with(llm::SYSTEM) && i.stdin.ends_with("\n\nPROMPT"));
-    assert_eq!(l.parse(true, "Passt, danke!\n", "[progress on stderr]"), Ok(Some("Passt, danke!".into())));
+    assert_eq!(l.parse(true, "Fine, thanks!\n", "[progress on stderr]"), Ok(Some("Fine, thanks!".into())));
     assert_eq!(l.parse(true, "NO_REPLY\n", ""), Ok(None));
     assert_eq!(l.parse(false, "", "error: not logged in"), Err("error: not logged in".into()));
 }
@@ -141,25 +141,25 @@ fn cursor_invocation_and_output() {
     let i = l.invocation("PROMPT").unwrap();
     assert_eq!((i.program.as_str(), &i.args[..3]), ("cursor-agent", &["-p".to_string(), "--output-format".into(), "json".into()][..]));
     assert!(i.args.last().unwrap().ends_with("\n\nPROMPT") && i.stdin.is_empty());
-    let out = r#"{"type":"result","subtype":"success","is_error":false,"duration_ms":1800,"result":"Ja, passt 👍","session_id":"x"}"#;
-    assert_eq!(l.parse(true, out, ""), Ok(Some("Ja, passt 👍".into())));
+    let out = r#"{"type":"result","subtype":"success","is_error":false,"duration_ms":1800,"result":"Yes, fine 👍","session_id":"x"}"#;
+    assert_eq!(l.parse(true, out, ""), Ok(Some("Yes, fine 👍".into())));
 }
 
 #[test]
 fn custom_endpoint_goes_through_curl_with_the_token_on_stdin() {
-    let l = Llm { endpoint: "https://api.example.com/v1/".into(), model: "gpt-4o-mini".into(), token: "sk-\"geheim\"".into(), ..llm(Provider::Custom) };
-    let Invocation { program, args, stdin } = l.invocation("Hallo \"du\"\nzweite Zeile").unwrap();
+    let l = Llm { endpoint: "https://api.example.com/v1/".into(), model: "gpt-4o-mini".into(), token: "sk-\"secret\"".into(), ..llm(Provider::Custom) };
+    let Invocation { program, args, stdin } = l.invocation("Hello \"you\"\nsecond line").unwrap();
     assert_eq!((program.as_str(), args.join(" ")), ("curl", "-sS --max-time 120 -w \\n%{http_code} -K -".to_string()));
     assert!(!args.iter().any(|a| a.contains("sk-")), "the token never goes on the command line");
     assert!(stdin.contains("url = \"https://api.example.com/v1/chat/completions\"\n"));
-    assert!(stdin.contains("header = \"Authorization: Bearer sk-\\\"geheim\\\"\"\n"), "{stdin}");
+    assert!(stdin.contains("header = \"Authorization: Bearer sk-\\\"secret\\\"\"\n"), "{stdin}");
     // The body, unquoted again, is the JSON request.
     let body = stdin.lines().find_map(|l| l.strip_prefix("data-binary = \"")).unwrap().trim_end_matches('"').replace("\\\"", "\"").replace("\\\\", "\\");
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
-    assert_eq!((v["model"].as_str(), v["messages"][1]["content"].as_str()), (Some("gpt-4o-mini"), Some("Hallo \"du\"\nzweite Zeile")));
+    assert_eq!((v["model"].as_str(), v["messages"][1]["content"].as_str()), (Some("gpt-4o-mini"), Some("Hello \"you\"\nsecond line")));
     assert_eq!(v["messages"][0]["role"], "system");
-    let ok = r#"{"id":"c","choices":[{"index":0,"message":{"role":"assistant","content":"Moin, klar!"},"finish_reason":"stop"}]}"#;
-    assert_eq!(l.parse(true, ok, ""), Ok(Some("Moin, klar!".into())));
+    let ok = r#"{"id":"c","choices":[{"index":0,"message":{"role":"assistant","content":"Morning, sure!"},"finish_reason":"stop"}]}"#;
+    assert_eq!(l.parse(true, ok, ""), Ok(Some("Morning, sure!".into())));
     assert_eq!(l.parse(true, r#"{"error":{"message":"Incorrect API key provided"}}"#, ""), Err("Incorrect API key provided".into()));
     assert_eq!(l.parse(false, "", "curl: (6) Could not resolve host"), Err("curl: (6) Could not resolve host".into()));
     assert!(Llm { endpoint: "".into(), ..l.clone() }.invocation("x").is_err());
@@ -184,11 +184,11 @@ fn custom_endpoint_errors_say_the_http_status() {
 fn reasoning_and_empty_answers() {
     let l = Llm { endpoint: "https://x/v1".into(), model: "m".into(), ..llm(Provider::Custom) };
     let with = |content: &str| format!("{{\"choices\":[{{\"message\":{{\"content\":{content}}},\"finish_reason\":\"length\"}}]}}\n200");
-    assert_eq!(l.parse(true, &with("\"<think>Ein Gruss.</think>\\n\\nhoi zäme\""), ""), Ok(Some("hoi zäme".into())));
+    assert_eq!(l.parse(true, &with("\"<think>A greeting.</think>\\n\\nhi all\""), ""), Ok(Some("hi all".into())));
     assert_eq!(l.parse(true, &with("[{\"type\":\"text\",\"text\":\"hoi\"}]"), ""), Ok(Some("hoi".into())));
     // No text (only reasoning, cut off, null): an error with the reason, not a silent "no reply".
-    assert_eq!(l.parse(true, &with("null"), ""), Err("leere Antwort des Modells (finish_reason: length)".into()));
-    assert_eq!(l.parse(true, &with("\"<think>noch am Überlegen\""), ""), Err("leere Antwort des Modells (finish_reason: length)".into()));
+    assert_eq!(l.parse(true, &with("null"), ""), Err("empty answer from the model (finish_reason: length)".into()));
+    assert_eq!(l.parse(true, &with("\"<think>still thinking\""), ""), Err("empty answer from the model (finish_reason: length)".into()));
     assert_eq!(clean("<think>x</think>NO_REPLY"), None);
 }
 
@@ -204,9 +204,9 @@ fn skipped_messages_say_why() {
     let dm = nm("s1", "Anna", "hoi", DIRECT);
     assert_eq!(skip(&on(), &State::default(), &dm, now), None);
     let busy = State { pending: ["s1".to_string()].into(), ..State::default() };
-    assert_eq!(skip(&on(), &busy, &dm, now), Some("für diesen Chat läuft schon eine Antwort"));
+    assert_eq!(skip(&on(), &busy, &dm, now), Some("a reply for this chat is already on its way"));
     let recent = State { last: [("s1".to_string(), now)].into(), ..State::default() };
-    assert_eq!(skip(&on(), &recent, &dm, now), Some("Abklingzeit für diesen Chat läuft noch"));
+    assert_eq!(skip(&on(), &recent, &dm, now), Some("this chat is still in its cooldown"));
     // The everyday reasons are not logged.
     assert!(QUIET.contains(&skip(&on(), &State::default(), &nm("g", "Anna", "x", 0), now).unwrap()));
 }
@@ -286,12 +286,12 @@ fn every_outcome_is_shown_in_suggestion_mode() {
     (v.start.unwrap())(v.instance, &api);
     let ok = |c: &str| format!("{{\"choices\":[{{\"message\":{{\"content\":\"{c}\"}},\"finish_reason\":\"stop\"}}]}}");
     let seen = run("200 OK", &ok("hoi Manuel!"), "a");
-    assert!(seen.contains(&"toast: Vorschlag für Manuel: hoi Manuel!".to_string()), "{seen:?}");
+    assert!(seen.contains(&"toast: Suggestion for Manuel: hoi Manuel!".to_string()), "{seen:?}");
     let seen = run("200 OK", &ok("NO_REPLY"), "b");
-    assert!(seen.contains(&"toast: Keine Antwort nötig (Manuel): das Modell hat NO_REPLY geantwortet.".to_string()), "{seen:?}");
+    assert!(seen.contains(&"toast: No reply needed (Manuel): the model answered NO_REPLY.".to_string()), "{seen:?}");
     let seen = run("401 Unauthorized", r#"{"error":{"message":"Invalid API key"}}"#, "c");
-    assert!(seen.contains(&"toast: Anbieter-Fehler: HTTP 401: Invalid API key".to_string()), "{seen:?}");
-    assert!(seen.contains(&"log: Anbieter-Fehler: HTTP 401: Invalid API key".to_string()), "{seen:?}");
+    assert!(seen.contains(&"toast: Provider error: HTTP 401: Invalid API key".to_string()), "{seen:?}");
+    assert!(seen.contains(&"log: Provider error: HTTP 401: Invalid API key".to_string()), "{seen:?}");
     assert!(!seen.iter().any(|l| l.contains("send")), "suggestion mode never sends");
     (v.stop.unwrap())(v.instance);
     (v.destroy.unwrap())(v.instance);
@@ -306,7 +306,7 @@ fn a_running_provider_is_killed_on_cancel() {
     let c = cancel.clone();
     let t = std::thread::spawn(move || { std::thread::sleep(Duration::from_millis(300)); c.store(true, Ordering::Relaxed) });
     let t0 = Instant::now();
-    assert_eq!(llm::run(&inv, &cancel), Err("abgebrochen".into()));
+    assert_eq!(llm::run(&inv, &cancel), Err("cancelled".into()));
     assert!(t0.elapsed() < Duration::from_secs(5));
     t.join().unwrap();
     assert!(llm::run(&Invocation { program: "webox-no-such-cli".into(), args: vec![], stdin: String::new() }, &AtomicBool::new(false)).is_err());

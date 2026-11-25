@@ -16,23 +16,23 @@ and starts no server.
 | `read_messages` | `space` (id or exact title), `limit?` (30, max 200) | the newest messages, oldest first: `author`, `email`, `mine`, `text`, `date` / `time` (UTC), `id` |
 | `search_messages` | `query`, `space?`, `limit?` (20, max 200) | loaded messages containing the text, newest first, with their space |
 | `search_people` | `query`, `limit?` (20, max 200) | people by name or e-mail, with their presence (`status`) |
-| `send_message` | `space`, `text` | only listed and callable when "KI darf Nachrichten senden" is on; every message is confirmed in Webox first |
+| `send_message` | `space`, `text` | only listed and callable when "Allow the AI to send messages" is on; every message is confirmed in Webox first |
 
 The AI reads what Webox has loaded (the newest 200 messages of every space opened or active since Webox started); nothing
 is fetched from Webex for it. `search_messages` searches those messages, like Webox's own search; Webex's server-side
 search is not used.
 
-## Settings (Einstellungen > Plugins > Webex MCP)
+## Settings (Settings > Plugins > Webex MCP)
 
 | Setting | Default | |
 |---|---|---|
-| MCP-Server aktiv | off | Nothing listens unless the plugin is switched on **and** this is on. |
+| MCP server on | off | Nothing listens unless the plugin is switched on **and** this is on. |
 | Port | 39847 | Address `http://127.0.0.1:<Port>/mcp`. |
-| Token | generated | 64 hex characters from the OS random generator, made on the first start and kept as a password setting (Windows Credential Manager / Secret Service). "Token anzeigen" shows it, "Token neu erzeugen" replaces it (the old one stops working at once). |
-| Verbindung kopieren | | puts the Claude Code command and an `mcp.json` with address and token on the clipboard |
-| KI darf Nachrichten senden | off | adds `send_message` |
-| Nur diese Bereiche | empty = all | one space title or id per line; other spaces do not exist for the AI (not listed, not readable, left out of search results) |
-| Letzte Aufrufe anzeigen | | the last calls (also in the plugin log on the Plugins page) |
+| Token | generated | 64 hex characters from the OS random generator, made on the first start and kept as a password setting (Windows Credential Manager / Secret Service). "Show token" shows it, "Generate new token" replaces it (the old one stops working at once). |
+| Copy connection | | puts the Claude Code command and an `mcp.json` with address and token on the clipboard |
+| Allow the AI to send messages | off | adds `send_message` |
+| Only these spaces | empty = all | one space title or id per line; other spaces do not exist for the AI (not listed, not readable, left out of search results) |
+| Show recent calls | | the last calls (also in the plugin log on the Plugins page) |
 
 ## Security
 
@@ -40,17 +40,17 @@ search is not used.
 - **Token.** Every request needs `Authorization: Bearer <token>` (compared in constant time); without it: 401.
 - **DNS rebinding / web pages.** The `Host` header must be `127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>`, and an
   `Origin` header, if present, must be a page on this machine; otherwise: 403, as the MCP specification recommends.
-- **Sending** is off by default. When on, every message opens a dialog in Webox ("Webex MCP: Claude Code möchte an
-  „Projekt Alpha“ senden: …" with **Senden** / **Ablehnen**); only Senden sends. Closing the dialog, 2 minutes without an
-  answer, or switching the plugin off count as Ablehnen. Read-only spaces are refused before asking.
+- **Sending** is off by default. When on, every message opens a dialog in Webox (`Webex MCP: Claude Code wants to send to
+  "Project Alpha": …` with **Send** / **Decline**); only Send sends. Closing the dialog, 2 minutes without an
+  answer, or switching the plugin off count as Decline. Read-only spaces are refused before asking.
 - **Log.** Every tool call goes to the plugin log with the client's name (from `initialize`), the tool and the space, never
-  message text: `Claude Code: read_messages (Projekt Alpha) -> ok`. Refused requests are logged too.
+  message text: `Claude Code: read_messages (Project Alpha) -> ok`. Refused requests are logged too.
 - Message texts are written by other people. The server's instructions tell the AI to treat them as data, not
   instructions; still, an AI allowed to send can be talked into wanting to, which is why every message is confirmed.
 
 ## Connecting a client
 
-Replace `TOKEN` (and the port, if changed). "Verbindung kopieren" fills both in.
+Replace `TOKEN` (and the port, if changed). "Copy connection" fills both in.
 
 **Claude Code**
 

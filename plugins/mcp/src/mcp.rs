@@ -122,7 +122,7 @@ fn num(a: &Value, k: &str, def: u64, max: u64) -> u64 { a[k].as_u64().unwrap_or(
 pub fn call_tool(api: &dyn Api, p: &Policy, client: &str, name: &str, a: &Value) -> Value {
     let mut space_title = String::new();
     let res = run(api, p, client, name, a, &mut space_title);
-    let outcome = match &res { Ok(_) => "ok".to_string(), Err(e) if e == REFUSED => "abgelehnt".into(), Err(_) => "Fehler".into() };
+    let outcome = match &res { Ok(_) => "ok".to_string(), Err(e) if e == REFUSED => "declined".into(), Err(_) => "error".into() };
     let at = if space_title.is_empty() { String::new() } else { format!(" ({space_title})") };
     api.log(&format!("{client}: {name}{at} -> {outcome}"));
     match res { Ok(v) => result(v), Err(e) => failure(&e) }
@@ -173,8 +173,8 @@ fn run(api: &dyn Api, p: &Policy, client: &str, name: &str, a: &Value, space_tit
             let sp = found(arg(a, "space"))?;
             if sp["writable"] == false { return Err("This space is read-only for the user.".into()); }
             let title = sp["title"].as_str().unwrap_or("");
-            let ask = api.call("ui.confirm", json!({ "title": "Nachricht senden?", "text": format!("{client} möchte an „{title}“ senden:\n\n{text}"),
-                "ok": "Senden", "cancel": "Ablehnen", "timeout": 120 }));
+            let ask = api.call("ui.confirm", json!({ "title": "Send message?", "text": format!("{client} wants to send to \"{title}\":\n\n{text}"),
+                "ok": "Send", "cancel": "Decline", "timeout": 120 }));
             if let Some(e) = ask["error"].as_str() { return Err(e.to_string()); }
             if ask["ok"] != true { return Err(REFUSED.into()); }
             let r = api.call("space.send", json!({ "space": sp["id"], "text": text }));

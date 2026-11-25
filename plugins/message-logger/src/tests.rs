@@ -79,12 +79,12 @@ fn should_ignore_follows_equicord() {
 fn edits_collect_versions_with_their_times() {
     let mut p = with(Cfg::default());
     let h = |a: Option<String>| v(&a.unwrap())["history"].clone();
-    assert_eq!(h(p.on_event("message.edited", &edited("m1", "eins", "eins!"))), json!(["eins"]));
-    assert_eq!(h(p.on_event("message.edited", &edited("m1", "eins!", "eins?"))), json!(["eins", "eins!"]));
-    assert_eq!(h(p.on_event("message.edited", &edited("m1", "eins!", "eins?"))), json!(["eins", "eins!"]));
-    assert_eq!(h(p.on_event("message.edited", &edited("m1", "eins?", "eins"))), json!(["eins!", "eins?"]));
+    assert_eq!(h(p.on_event("message.edited", &edited("m1", "one", "one!"))), json!(["one"]));
+    assert_eq!(h(p.on_event("message.edited", &edited("m1", "one!", "one?"))), json!(["one", "one!"]));
+    assert_eq!(h(p.on_event("message.edited", &edited("m1", "one!", "one?"))), json!(["one", "one!"]));
+    assert_eq!(h(p.on_event("message.edited", &edited("m1", "one?", "one"))), json!(["one!", "one?"]));
     let r = &p.log.edited[0];
-    assert_eq!((r["current"].as_str(), r["published_ms"].as_i64()), (Some("eins"), Some(1000)));
+    assert_eq!((r["current"].as_str(), r["published_ms"].as_i64()), (Some("one"), Some(1000)));
     assert!(r["history"].as_array().unwrap().iter().all(|x| x["ms"].as_i64().unwrap() > 0));
     for i in 0..30 { p.on_event("message.edited", &edited("m2", &format!("v{i}"), &format!("v{}", i + 1))); }
     assert_eq!(h(p.on_event("message.edited", &edited("m2", "v30", "v31"))).as_array().unwrap().len(), MAX_VERSIONS);
@@ -102,7 +102,7 @@ fn edits_collect_versions_with_their_times() {
 fn inline_and_diff_views() {
     // inlineEdits off: logged, only the tag.
     let mut p = with(Cfg { inline: false, ..Cfg::default() });
-    assert_eq!(p.on_event("message.edited", &edited("m1", "Hallo Welt", "Hallo Leute")).map(|a| v(&a)), Some(json!({ "history": [], "inline": false })));
+    assert_eq!(p.on_event("message.edited", &edited("m1", "Hello world", "Hello folks")).map(|a| v(&a)), Some(json!({ "history": [], "inline": false })));
     assert_eq!(p.log.edited.len(), 1);
     // showEditDiffs: each earlier text against the next one.
     let mut p = with(Cfg { diffs: true, ..Cfg::default() });
@@ -125,13 +125,13 @@ fn the_message_menu_matches_equicord() {
     assert!(labels(&mut p, "x", false).is_empty(), "no history: nothing added");
     p.on_event("message.deleted", &deleted("d1", "Team", false));
     p.on_event("message.edited", &edited("e1", "a", "b"));
-    assert_eq!(labels(&mut p, "d1", true), ["Gelöscht-Markierung umschalten", "Nachrichtenverlauf löschen"]);
-    assert_eq!(labels(&mut p, "e1", false), ["Nachrichtenverlauf löschen"]);
+    assert_eq!(labels(&mut p, "d1", true), ["Toggle Deleted Highlight", "Clear Message History"]);
+    assert_eq!(labels(&mut p, "e1", false), ["Clear Message History"]);
     p.cfg.diffs = true;
-    assert_eq!(labels(&mut p, "e1", false), ["Änderungsvergleich deaktivieren", "Nachrichtenverlauf löschen"]);
+    assert_eq!(labels(&mut p, "e1", false), ["Disable Diff View", "Clear Message History"]);
     // Toggles are per message and session: the diff view goes, the highlight goes ("plain").
     ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "e1", "item": "toggle-diff" }));
-    assert_eq!(labels(&mut p, "e1", false), ["Änderungsvergleich aktivieren", "Nachrichtenverlauf löschen"]);
+    assert_eq!(labels(&mut p, "e1", false), ["Enable Diff View", "Clear Message History"]);
     assert_eq!(p.keep_args()["edited"][0]["history"], json!(["a"]), "no diff for it now");
     ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "d1", "item": "toggle-deleted" }));
     assert_eq!(p.keep_args()["deleted"][0]["style"], "plain");
@@ -148,9 +148,9 @@ fn the_message_menu_matches_equicord() {
 fn the_space_menu_clears_that_spaces_log() {
     let mut p = with(Cfg::default());
     p.on_event("message.deleted", &deleted("d1", "Team", false));
-    p.on_event("message.deleted", &deleted("d2", "Andere", false));
-    assert_eq!(ev(&mut p, "space.menu", json!({ "space": "sp-Leer" })), None, "only where something is logged");
-    assert_eq!(ev(&mut p, "space.menu", json!({ "space": "sp-Team" })), Some(json!({ "items": [{ "id": "clear-log", "label": "Protokoll leeren", "danger": true }] })));
+    p.on_event("message.deleted", &deleted("d2", "Other", false));
+    assert_eq!(ev(&mut p, "space.menu", json!({ "space": "sp-Empty" })), None, "only where something is logged");
+    assert_eq!(ev(&mut p, "space.menu", json!({ "space": "sp-Team" })), Some(json!({ "items": [{ "id": "clear-log", "label": "Clear Message Log", "danger": true }] })));
     ev(&mut p, "space.menu_action", json!({ "space": "sp-Team", "item": "clear-log" }));
     assert_eq!(p.log.deleted.iter().map(|r| s(r, "id")).collect::<Vec<_>>(), ["d2"]);
 }
@@ -158,25 +158,25 @@ fn the_space_menu_clears_that_spaces_log() {
 #[test]
 fn the_history_dialog_has_a_tab_per_version() {
     let mut p = with(Cfg { diffs: true, ..Cfg::default() });
-    p.on_event("message.edited", &edited("m1", "Hallo", "Hallo Welt"));
-    p.on_event("message.edited", &edited("m1", "Hallo Welt", "Hallo Leute"));
-    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "m1", "text": "Hallo Leute", "published_ms": 1000 }));
-    assert_eq!(d["title"], "Bearbeitungsverlauf");
-    assert_eq!(d["switch"], json!({ "label": "Unterschiede anzeigen", "on": true }));
+    p.on_event("message.edited", &edited("m1", "Hello", "Hello world"));
+    p.on_event("message.edited", &edited("m1", "Hello world", "Hello folks"));
+    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "m1", "text": "Hello folks", "published_ms": 1000 }));
+    assert_eq!(d["title"], "Message Edit History");
+    assert_eq!(d["switch"], json!({ "label": "Show Diff", "on": true }));
     let tabs = d["tabs"].as_array().unwrap();
     assert_eq!(tabs.len(), 3, "two earlier versions and the current one");
     assert_eq!(d["selected"], 2);
-    assert_eq!((tabs[0]["time_ms"].as_i64(), tabs[0]["text"].as_str()), (Some(1000), Some("Hallo")));
-    assert_eq!(tabs[0]["alt"], json!([{ "text": "Hallo" }, { "text": " Leute", "kind": "added" }]), "against the newest version");
-    assert_eq!(tabs[2]["text"], "Hallo Leute");
+    assert_eq!((tabs[0]["time_ms"].as_i64(), tabs[0]["text"].as_str()), (Some(1000), Some("Hello")));
+    assert_eq!(tabs[0]["alt"], json!([{ "text": "Hello" }, { "text": " folks", "kind": "added" }]), "against the newest version");
+    assert_eq!(tabs[2]["text"], "Hello folks");
     assert!(tabs[2]["time_ms"].as_i64().unwrap() > 0 && tabs[2].get("alt").is_none());
     // Nothing logged (or the original was never seen): a greyed tab for the original, then the current text.
-    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "zz", "text": "Jetzt", "published_ms": 500 }));
+    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "zz", "text": "Now", "published_ms": 500 }));
     let tabs = d["tabs"].as_array().unwrap();
-    assert_eq!((tabs.len(), tabs[0]["disabled"].as_bool(), tabs[1]["text"].as_str()), (2, Some(true), Some("Jetzt")));
+    assert_eq!((tabs.len(), tabs[0]["disabled"].as_bool(), tabs[1]["text"].as_str()), (2, Some(true), Some("Now")));
     // A message whose diff view was switched off: no diff in the dialog either.
     ev(&mut p, "message.menu_action", json!({ "space": "sp-Team", "id": "m1", "item": "toggle-diff" }));
-    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "m1", "text": "Hallo Leute", "published_ms": 1000 }));
+    let d = p.history_dialog(&json!({ "space": "sp-Team", "id": "m1", "text": "Hello folks", "published_ms": 1000 }));
     assert!(d["tabs"][0].get("alt").is_none() && d["switch"]["on"] == false);
 }
 
@@ -184,10 +184,10 @@ fn the_history_dialog_has_a_tab_per_version() {
 fn settings_changes_apply_to_what_is_shown() {
     let mut p = with(Cfg::default());
     p.on_event("message.deleted", &deleted("m1", "Team", false));
-    p.on_event("message.edited", &edited("m2", "alt", "neu"));
+    p.on_event("message.edited", &edited("m2", "old", "new"));
     let k = p.keep_args();
     assert_eq!(k["deleted"][0]["style"], "text");
-    assert_eq!(k["edited"], json!([{ "id": "m2", "history": ["alt"] }]));
+    assert_eq!(k["edited"], json!([{ "id": "m2", "history": ["old"] }]));
     p.cfg = Cfg { style: "overlay".into(), collapse: true, attachments: false, ..Cfg::default() };
     let k = p.keep_args();
     assert_eq!((k["deleted"][0]["style"].as_str(), k["deleted"][0]["collapsed"].as_bool(), k["deleted"][0]["attachments"].as_bool()), (Some("overlay"), Some(true), Some(false)));
@@ -197,8 +197,8 @@ fn settings_changes_apply_to_what_is_shown() {
 
 #[test]
 fn a_1_1_log_still_loads() {
-    let l = Log::parse(r#"{"deleted":[{"id":"d1","space":"s"}],"edited":[{"id":"e1","space":"s","history":["eins","zwei"]}],"toggled":["e1"]}"#);
-    assert_eq!(l.edited[0]["history"], json!([{ "text": "eins", "ms": 0 }, { "text": "zwei", "ms": 0 }]));
+    let l = Log::parse(r#"{"deleted":[{"id":"d1","space":"s"}],"edited":[{"id":"e1","space":"s","history":["one","two"]}],"toggled":["e1"]}"#);
+    assert_eq!(l.edited[0]["history"], json!([{ "text": "one", "ms": 0 }, { "text": "two", "ms": 0 }]));
     assert_eq!(Log::parse(&l.to_json()), l);
     assert_eq!(Log::parse("kaputt"), Log::default());
 }

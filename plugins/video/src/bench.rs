@@ -71,37 +71,37 @@ fn bench() {
     let n = 30;
     let mut rows: Vec<(&str, f64)> = vec![];
 
-    rows.push(("Helligkeit/Kontrast (+30/+20)", time(&src, &mut out, n, |i| fx::apply_lut(i, &fx::tone_lut(30.0, 20.0, 1.0)))));
+    rows.push(("Brightness/contrast (+30/+20)", time(&src, &mut out, n, |i| fx::apply_lut(i, &fx::tone_lut(30.0, 20.0, 1.0)))));
     save(&dir, "brightness_contrast", &out);
-    rows.push(("Restlicht-Verstärkung", time(&src, &mut out, n, |i| { let g = fx::low_light_gain(fx::mean_luma(i) * 0.4); fx::apply_lut(i, &fx::tone_lut(0.0, 0.0, g)) })));
+    rows.push(("Low-light boost", time(&src, &mut out, n, |i| { let g = fx::low_light_gain(fx::mean_luma(i) * 0.4); fx::apply_lut(i, &fx::tone_lut(0.0, 0.0, g)) })));
     save(&dir, "low_light", &out);
-    rows.push(("Spiegeln", time(&src, &mut out, n, fx::mirror)));
+    rows.push(("Mirror", time(&src, &mut out, n, fx::mirror)));
     save(&dir, "mirror", &out);
-    rows.push(("Weichzeichner fürs Gesicht (100)", time(&src, &mut out, n, |i| fx::soften(i, 1.0, None))));
+    rows.push(("Soft focus for the face (100)", time(&src, &mut out, n, |i| fx::soften(i, 1.0, None))));
     save(&dir, "soften", &out);
-    rows.push(("  davon: Viertelgrösse", time(&src, &mut out, n, |i| { std::hint::black_box(fx::Small::of(i, 4)); })));
-    rows.push(("  davon: Viertelgrösse + Blur", time(&src, &mut out, n, |i| { let mut s = fx::Small::of(i, 4); s.blur(2, 2); std::hint::black_box(s); })));
-    let label = text::Label::new("Anna Muster", H, W * 2 / 3).unwrap();
-    rows.push(("Name einblenden", time(&src, &mut out, n, |i| label.draw(i))));
+    rows.push(("  of which: quarter size", time(&src, &mut out, n, |i| { std::hint::black_box(fx::Small::of(i, 4)); })));
+    rows.push(("  of which: quarter size + blur", time(&src, &mut out, n, |i| { let mut s = fx::Small::of(i, 4); s.blur(2, 2); std::hint::black_box(s); })));
+    let label = text::Label::new("Anna Smith", H, W * 2 / 3).unwrap();
+    rows.push(("Show name", time(&src, &mut out, n, |i| label.draw(i))));
     save(&dir, "name", &out);
 
     let t = Instant::now();
     let mut s = seg::Segmenter::new().unwrap();
     let load_ms = t.elapsed().as_secs_f64() * 1000.0;
     let mut mask = vec![];
-    rows.push(("Segmentierung (256x144, tract; eigener Thread)", time(&src, &mut out, n, |i| { mask = s.run(i.px, i.w, i.h, i.stride).unwrap(); })));
+    rows.push(("Segmentation (256x144, tract; own thread)", time(&src, &mut out, n, |i| { mask = s.run(i.px, i.w, i.h, i.stride).unwrap(); })));
     let mut input = vec![];
-    rows.push(("Segmentierung: Eingabe für den Thread", time(&src, &mut out, n, |i| seg::sample(i.px, i.w, i.h, i.stride, &mut input))));
+    rows.push(("Segmentation: input for the thread", time(&src, &mut out, n, |i| seg::sample(i.px, i.w, i.h, i.stride, &mut input))));
     let mut sm = seg::Smoother::new(0.6);
     for _ in 0..5 { sm.update(&mask); }
     let alpha = sm.alpha.clone();
-    rows.push(("Maske glätten", time(&src, &mut out, n, |_| { sm.update(&mask); })));
-    rows.push(("Hintergrund weichzeichnen (ohne Segm.)", time(&src, &mut out, n, |i| { let b = fx::blurred(i, 5); fx::composite(i, &alpha, seg::W, seg::H, &Behind::Blur(b)) })));
+    rows.push(("Mask smoothing", time(&src, &mut out, n, |_| { sm.update(&mask); })));
+    rows.push(("Background blur (without segm.)", time(&src, &mut out, n, |i| { let b = fx::blurred(i, 5); fx::composite(i, &alpha, seg::W, seg::H, &Behind::Blur(b)) })));
     save(&dir, "background_blur", &out);
-    rows.push(("Hintergrundbild (ohne Segm.)", time(&src, &mut out, n, |i| fx::composite(i, &alpha, seg::W, seg::H, &Behind::Picture(&bg)))));
+    rows.push(("Picture background (without segm.)", time(&src, &mut out, n, |i| fx::composite(i, &alpha, seg::W, seg::H, &Behind::Picture(&bg)))));
     save(&dir, "background_picture", &out);
     // all at once, as the filter runs them: the inference runs on its own thread, the filter only samples and takes the mask
-    rows.push(("Alles zusammen im Filter (Bild-Hintergrund)", time(&src, &mut out, n, |i| {
+    rows.push(("Everything in the filter (picture background)", time(&src, &mut out, n, |i| {
         fx::apply_lut(i, &fx::tone_lut(10.0, 10.0, 1.2));
         seg::sample(i.px, i.w, i.h, i.stride, &mut input);
         let m = mask.clone();
@@ -114,6 +114,6 @@ fn bench() {
     save(&dir, "all", &out);
 
     println!("1280x720, median of {n} runs, release build:");
-    println!("  Modell laden (einmal): {load_ms:.1} ms");
+    println!("  Model load (once): {load_ms:.1} ms");
     for (name, ms) in rows { println!("  {name:<42} {ms:6.2} ms"); }
 }

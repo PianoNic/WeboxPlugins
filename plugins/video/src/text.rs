@@ -1,4 +1,4 @@
-//! "Name einblenden": a lower third (a dark translucent bar with an accent stripe and the name in white, bottom left). The
+//! "Show name": a lower third (a dark translucent bar with an accent stripe and the name in white, bottom left). The
 //! text is drawn with the bundled Selawik Semibold (SIL Open Font License 1.1, the font Webox itself ships) once per name
 //! and frame height into an alpha mask; each frame only blends the bar and the mask.
 use crate::fx::Img;

@@ -65,13 +65,13 @@ pub fn auth_ok(h: Option<&str>, token: &str) -> bool {
 /// Answers one request (everything but the socket). `new_id` makes a session id for `initialize`.
 pub fn route(api: &dyn Api, st: &Shared, port: u16, req: &Req, new_id: &mut dyn FnMut() -> String) -> Resp {
     if !host_ok(req.header("host"), port) || !origin_ok(req.header("origin")) {
-        api.log("abgewiesen: fremder Host oder fremde Herkunft (Origin)");
+        api.log("rejected: foreign host or origin");
         return resp(403, "Forbidden");
     }
     if req.path.split('?').next() != Some("/mcp") { return resp(404, "Not Found"); }
     let (policy, token) = { let s = lock(st); (s.policy.clone(), s.token.clone()) };
     if !auth_ok(req.header("authorization"), &token) {
-        api.log("abgewiesen: Anfrage ohne gültiges Token");
+        api.log("rejected: request without a valid token");
         let mut r = resp(401, "Unauthorized");
         r.headers.push(("WWW-Authenticate".into(), "Bearer".into()));
         return r;
@@ -98,7 +98,7 @@ pub fn route(api: &dyn Api, st: &Shared, port: u16, req: &Req, new_id: &mut dyn 
     if session.is_some() && known.is_none() && init.is_none() { return resp(404, "Unknown session"); }
     let client = match init {
         Some(m) => clean_name(m["params"]["clientInfo"]["name"].as_str().unwrap_or("")),
-        None => known.unwrap_or_else(|| "MCP-Client".into()),
+        None => known.unwrap_or_else(|| "MCP client".into()),
     };
     let answers: Vec<Value> = msgs.iter().filter_map(|m| mcp::handle(api, &policy, &client, m)).collect();
     let mut r = if answers.is_empty() { resp(202, "") } else if body.is_array() { resp(200, &Value::Array(answers).to_string()) } else { resp(200, &answers[0].to_string()) };
@@ -115,7 +115,7 @@ pub fn route(api: &dyn Api, st: &Shared, port: u16, req: &Req, new_id: &mut dyn 
 /// A client name as shown in logs and dialogs: printable, at most 60 characters.
 pub fn clean_name(n: &str) -> String {
     let n: String = n.chars().filter(|c| !c.is_control()).take(60).collect();
-    if n.trim().is_empty() { "MCP-Client".into() } else { n.trim().to_string() }
+    if n.trim().is_empty() { "MCP client".into() } else { n.trim().to_string() }
 }
 
 /// Reads one HTTP/1.1 request (Content-Length bodies only); the status to answer when it is unusable.

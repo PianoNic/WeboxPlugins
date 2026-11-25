@@ -1,7 +1,7 @@
 //! Webex MCP: an MCP server inside Webox, so a local AI client (Claude Code, Claude Desktop, LM Studio, ...) can read the user's
 //! Webex through Webox: spaces, messages, people; and, only when the user allows it and confirms each message, send.
 //!
-//! Nothing listens unless the plugin is switched on and "MCP-Server aktiv" is on. The server binds 127.0.0.1 only and wants a
+//! Nothing listens unless the plugin is switched on and "MCP server on" is on. The server binds 127.0.0.1 only and wants a
 //! bearer token, which the plugin generates on first start and keeps as a password setting (OS keyring). Every tool call is
 //! logged (client, tool, space; never message text). See `server.rs` for the transport and `mcp.rs` for the tools.
 //!
@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
 pub const DEFAULT_PORT: u16 = 39847;
-/// Lines the "Letzte Aufrufe" button shows.
+/// Lines the "Show recent calls" button shows.
 const RECENT: usize = 20;
 /// Host methods the tools use.
 const NEEDS: &[&str] = &["spaces.list", "space.history", "messages.search", "people.search", "ui.confirm", "space.send", "settings.set", "clipboard.write"];
@@ -42,7 +42,7 @@ impl Cfg {
     fn url(&self) -> String { format!("http://127.0.0.1:{}/mcp", self.port) }
 }
 
-/// The ready-to-paste client configuration ("Verbindung kopieren").
+/// The ready-to-paste client configuration ("Copy connection").
 fn snippet(c: &Cfg) -> String {
     let (url, auth) = (c.url(), format!("Bearer {}", c.token));
     let cfg = json!({ "mcpServers": { "webex": { "type": "http", "url": url, "headers": { "Authorization": auth } } } });
@@ -50,7 +50,7 @@ fn snippet(c: &Cfg) -> String {
         serde_json::to_string_pretty(&cfg).unwrap_or_default())
 }
 
-/// `Host` as the tools see it; log lines are also kept for the "Letzte Aufrufe" button.
+/// `Host` as the tools see it; log lines are also kept for the "Show recent calls" button.
 struct Webox { host: Host, recent: Arc<Mutex<VecDeque<String>>> }
 // Webox's host methods are safe to call from any thread (docs/plugins.md); `Host` stays valid until `stop` returns, and every
 // thread using it is joined before that.
@@ -58,7 +58,7 @@ unsafe impl Sync for Webox {}
 impl Api for Webox {
     fn call(&self, method: &str, args: Value) -> Value {
         self.host.call(method, &args.to_string()).and_then(|r| serde_json::from_str(&r).ok())
-            .unwrap_or_else(|| json!({ "error": format!("Webox kennt {method} nicht; bitte Webox aktualisieren") }))
+            .unwrap_or_else(|| json!({ "error": format!("Webox does not know {method}; please update Webox") }))
     }
     fn log(&self, text: &str) {
         self.host.log(text);
@@ -97,19 +97,19 @@ impl WebexMcp {
         let Some(host) = self.host else { return };
         let want = self.cfg.active && !self.cfg.token.is_empty();
         if want && self.server.as_ref().is_some_and(|s| s.port == self.cfg.port) { return; }
-        if let Some(s) = self.server.take() { self.leftover.extend(s.stop()); host.log("MCP-Server gestoppt"); }
+        if let Some(s) = self.server.take() { self.leftover.extend(s.stop()); host.log("MCP server stopped"); }
         if !want { return; }
         let api: Arc<dyn Api> = Arc::new(Webox { host, recent: self.recent.clone() });
         match server::start(self.cfg.port, api, self.state.clone(), new_session_id) {
-            Ok(s) => { host.log(&format!("MCP-Server läuft: {}", self.cfg.url())); self.server = Some(s); }
-            Err(e) => { let t = format!("MCP-Server konnte Port {} nicht öffnen: {e}", self.cfg.port); host.log(&t); host.toast(&t); }
+            Ok(s) => { host.log(&format!("MCP server running: {}", self.cfg.url())); self.server = Some(s); }
+            Err(e) => { let t = format!("MCP server could not open port {}: {e}", self.cfg.port); host.log(&t); host.toast(&t); }
         }
     }
 
     /// Makes a new token and saves it as the password setting (keyring); in effect at once, saved on the next frame.
     fn new_token(&mut self) -> Result<(), String> {
-        let host = self.host.ok_or("Bitte das Plugin zuerst einschalten.")?;
-        let t = rand::hex(32).ok_or("Das System lieferte keine Zufallszahlen.")?;
+        let host = self.host.ok_or("Please turn the plugin on first.")?;
+        let t = rand::hex(32).ok_or("The system returned no random numbers.")?;
         host.call("settings.set", &json!({ "id": "token", "value": t }).to_string());
         self.cfg.token = t;
         self.apply();
@@ -130,7 +130,7 @@ impl Plugin for WebexMcp {
         self.host = Some(host);
         let missing: Vec<&str> = NEEDS.iter().copied().filter(|n| !host.has(n)).collect();
         if !missing.is_empty() {
-            host.toast(&format!("Diese Webox-Version kann den MCP-Server nicht bedienen (fehlt: {}). Bitte Webox aktualisieren.", missing.join(", ")));
+            host.toast(&format!("This Webox version cannot run the MCP server (missing: {}). Please update Webox.", missing.join(", ")));
             return;
         }
         if self.cfg.token.is_empty() {
@@ -148,17 +148,17 @@ impl Plugin for WebexMcp {
 
     fn settings(&self) -> Option<Schema> {
         Some(Schema::new()
-            .section("MCP-Server", "Lässt eine lokale KI (Claude Code, Claude Desktop, LM Studio, …) über das Model Context Protocol Ihre Webex-Bereiche, Nachrichten und Personen lesen. Der Server hört nur auf 127.0.0.1 und verlangt das Token.")
-            .toggle("active", "MCP-Server aktiv", "", false)
-            .number("port", "Port", "Adresse: http://127.0.0.1:<Port>/mcp", DEFAULT_PORT as f64, 1024.0, 65535.0, 1.0)
-            .password("token", "Token", "Wird beim ersten Start erzeugt und im Schlüsselbund gespeichert. Clients senden es als „Authorization: Bearer <Token>“.")
-            .button("show_token", "Token anzeigen", "")
-            .button("new_token", "Token neu erzeugen", "Verbundene Clients brauchen danach das neue Token.")
-            .button("copy", "Verbindung kopieren", "Legt den Befehl für Claude Code und eine mcp.json mit Adresse und Token in die Zwischenablage.")
-            .section("Berechtigungen", "Die KI liest nur, was Webox geladen hat. Jeder Aufruf wird protokolliert (Client, Werkzeug, Bereich; nie Nachrichtentexte).")
-            .toggle("send", "KI darf Nachrichten senden", "Jede Nachricht müssen Sie in Webox mit „Senden“ bestätigen.", false)
-            .multiline("spaces", "Nur diese Bereiche", "Ein Bereichsname (oder eine ID) pro Zeile. Leer = alle Bereiche sind für die KI sichtbar.", "")
-            .button("calls", "Letzte Aufrufe anzeigen", ""))
+            .section("MCP server", "Lets a local AI (Claude Code, Claude Desktop, LM Studio, …) read your Webex spaces, messages and people through the Model Context Protocol. The server listens on 127.0.0.1 only and requires the token.")
+            .toggle("active", "MCP server on", "", false)
+            .number("port", "Port", "Address: http://127.0.0.1:<port>/mcp", DEFAULT_PORT as f64, 1024.0, 65535.0, 1.0)
+            .password("token", "Token", "Created on the first start and stored in the OS keyring. Clients send it as \"Authorization: Bearer <token>\".")
+            .button("show_token", "Show token", "")
+            .button("new_token", "Generate new token", "Connected clients then need the new token.")
+            .button("copy", "Copy connection", "Puts the Claude Code command and an mcp.json with address and token on the clipboard.")
+            .section("Permissions", "The AI reads only what Webox has loaded. Every call is logged (client, tool, space; never message text).")
+            .toggle("send", "Allow the AI to send messages", "You confirm every message in Webox with \"Send\".", false)
+            .multiline("spaces", "Only these spaces", "One space name (or id) per line. Empty = all spaces are visible to the AI.", "")
+            .button("calls", "Show recent calls", ""))
     }
     fn settings_changed(&mut self, v: &Values) {
         let token = self.cfg.token.clone();
@@ -169,17 +169,17 @@ impl Plugin for WebexMcp {
     }
     fn settings_action(&mut self, id: &str) -> Option<String> {
         Some(match id {
-            "show_token" if self.cfg.token.is_empty() => "Noch kein Token: bitte das Plugin einschalten.".into(),
+            "show_token" if self.cfg.token.is_empty() => "No token yet: please turn the plugin on.".into(),
             "show_token" => format!("Token: {}", self.cfg.token),
-            "new_token" => match self.new_token() { Ok(()) => "Neues Token erzeugt. Verbundene Clients brauchen das neue Token.".into(), Err(e) => e },
+            "new_token" => match self.new_token() { Ok(()) => "New token generated. Connected clients need the new token.".into(), Err(e) => e },
             "copy" => {
-                let Some(host) = self.host.filter(|_| !self.cfg.token.is_empty()) else { return Some("Bitte das Plugin zuerst einschalten.".into()) };
+                let Some(host) = self.host.filter(|_| !self.cfg.token.is_empty()) else { return Some("Please turn the plugin on first.".into()) };
                 host.call("clipboard.write", &json!({ "text": snippet(&self.cfg) }).to_string());
-                format!("Verbindung kopiert ({}){}", self.cfg.url(), if self.cfg.active { "" } else { ". Hinweis: „MCP-Server aktiv“ ist aus." })
+                format!("Connection copied ({}){}", self.cfg.url(), if self.cfg.active { "" } else { ". Note: \"MCP server on\" is off." })
             }
             "calls" => {
                 let r = self.recent.lock().unwrap_or_else(|e| e.into_inner());
-                if r.is_empty() { "Noch keine Aufrufe.".into() } else { r.iter().rev().take(8).cloned().collect::<Vec<_>>().join("\n") }
+                if r.is_empty() { "No calls yet.".into() } else { r.iter().rev().take(8).cloned().collect::<Vec<_>>().join("\n") }
             }
             _ => return None,
         })
