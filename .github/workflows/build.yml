@@ -90,6 +90,15 @@ jobs:
       - name: Write the index
         run: cargo run -p xtask -- index --dist dist --repo repo
 
+      # Webox checks repo/index.min.json.minisig with the public key built into it. TODO(owner): add the repository secrets
+      # MINISIGN_SECRET_KEY (the minisign secret key file) and MINISIGN_PASSWORD; until then the index is published unsigned
+      # (see xtask/src/sign.rs).
+      - name: Sign the index
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+        run: cargo run -p xtask -- sign --repo repo
+
       - name: Commit and push
         working-directory: repo
         run: |

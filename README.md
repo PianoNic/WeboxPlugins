@@ -46,6 +46,8 @@ https://raw.githubusercontent.com/PianoNic/WeboxPlugins/repo/index.min.json
 
 Webox only loads what the index promises. Each binary is checked against the SHA-256 and size listed in the index, both during the download and again before it is loaded. Downloads use HTTPS only, and redirects may lead only to GitHub's own hosts.
 
+The publish job signs the index with a minisign key (`index.min.json.minisig` next to it), and Webox checks that signature with the public key built into it. Because the index carries every binary's SHA-256, the signature covers the binaries too.
+
 ## Building
 
 ```sh
@@ -53,6 +55,7 @@ cargo test
 cargo build --release
 cargo run --release -p xtask -- collect --out dist        # binaries + manifest for this platform
 cargo run -p xtask -- index --dist dist --repo repo       # index.json, index.min.json and files/ as published
+cargo run -p xtask -- sign --repo repo                    # index*.minisig, with the key in MINISIGN_SECRET_KEY / MINISIGN_PASSWORD
 ```
 
 plugin-api comes from the Webox repository as a git dependency. To build against a local Webox checkout instead, run

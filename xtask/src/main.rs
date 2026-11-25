@@ -6,7 +6,10 @@
 //!   `<out>/files/<pkg>/<version>/<platform>/<library file>` and writes `<out>/manifest-<platform>.json` with sha256 and size.
 //! - `index --dist <dir> --repo <dir>`: merges every `manifest-*.json` under `<dist>`, copies the binaries into `<repo>`, removes
 //!   binaries no longer listed and writes `<repo>/index.json` and `<repo>/index.min.json` (the format in Webox's docs/plugins.md).
+//! - `sign --repo <dir>`: signs both index files with the minisign key in `MINISIGN_SECRET_KEY` / `MINISIGN_PASSWORD` and
+//!   writes `<file>.minisig` next to them (sign.rs). Without the key the index stays unsigned.
 mod meta;
+mod sign;
 
 use meta::PluginMeta;
 use serde_json::{json, Value};
@@ -22,7 +25,8 @@ fn main() {
         Some("check") => meta::read_workspace().map(|m| println!("{} plugins ok", m.len())),
         Some("collect") => collect(&args[1..]),
         Some("index") => index_cmd(&args[1..]),
-        _ => Err("usage: xtask check | collect --platform <key> [--release-dir <dir>] [--out <dir>] | index --dist <dir> --repo <dir>".into()),
+        Some("sign") => sign::cmd(&args[1..]),
+        _ => Err("usage: xtask check | collect --platform <key> [--release-dir <dir>] [--out <dir>] | index --dist <dir> --repo <dir> | sign --repo <dir>".into()),
     };
     if let Err(e) = r { eprintln!("error: {e}"); std::process::exit(1); }
 }
