@@ -12,20 +12,20 @@
       "description": "Answers incoming messages in your own words: Claude Code, Codex, Cursor or your own endpoint imitates your writing style.",
       "files": {
         "linux-x86_64": {
-          "file": "files/dev.webox.plugins.auto-reply/1.0.1/linux-x86_64/libcollabhost_auto_reply.so",
-          "sha256": "fbbf54c67bc5644dbc0e1ad93a8ea9512a709fabc4d37293be7e05848b9ba29d",
-          "size": 630504
+          "file": "files/dev.webox.plugins.auto-reply/1.0.2/linux-x86_64/libcollabhost_auto_reply.so",
+          "sha256": "bccc51acf5f386f327b294afb65be2a5166663cd7f5d5ceb8d39373a9efd3a8c",
+          "size": 630088
         },
         "windows-x86_64": {
-          "file": "files/dev.webox.plugins.auto-reply/1.0.1/windows-x86_64/collabhost_auto_reply.dll",
-          "sha256": "c33d968858facfe8dc3c8bbf70e377a556f613714fcf178269aa61a7c98a4d5a",
+          "file": "files/dev.webox.plugins.auto-reply/1.0.2/windows-x86_64/collabhost_auto_reply.dll",
+          "sha256": "572ba59946c2f565ecb07a132c2f7470330a685acd1f4932fdc4c3c10b65098e",
           "size": 525824
         }
       },
       "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/auto-reply",
-      "name": "Auto-Antwort",
+      "name": "Auto Reply",
       "pkg": "dev.webox.plugins.auto-reply",
-      "version": "1.0.1"
+      "version": "1.0.2"
     },
     {
       "authors": [
@@ -35,20 +35,20 @@
       "description": "Lets a local AI (Claude Code, Claude Desktop, LM Studio, any MCP client) read your Webex through Webox as MCP tools; sending only when allowed and confirmed.",
       "files": {
         "linux-x86_64": {
-          "file": "files/dev.webox.plugins.mcp/1.0.0/linux-x86_64/libcollabhost_mcp.so",
-          "sha256": "cd321155b7158d2ac80a25bf4731cb85963cc9f174b37a2ba191e50f7b043d52",
-          "size": 637928
+          "file": "files/dev.webox.plugins.mcp/1.0.1/linux-x86_64/libcollabhost_mcp.so",
+          "sha256": "8f6f5e3c9d776dc5b86d4f63b17d65f9ff8162168031562bd8c3cdedf31aad15",
+          "size": 637656
         },
         "windows-x86_64": {
-          "file": "files/dev.webox.plugins.mcp/1.0.0/windows-x86_64/collabhost_mcp.dll",
-          "sha256": "be9a58aaa62a0712f393c596448ee2513b4fa9512f0ba8ff286aae8d7a9a1c02",
-          "size": 518656
+          "file": "files/dev.webox.plugins.mcp/1.0.1/windows-x86_64/collabhost_mcp.dll",
+          "sha256": "2e482e201e4272d6f89c4ee9c429277c36eef4b929d110507b0c1322e6b75780",
+          "size": 518144
         }
       },
       "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/mcp",
       "name": "Webex MCP",
       "pkg": "dev.webox.plugins.mcp",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "authors": [
@@ -58,20 +58,20 @@
       "description": "Keeps deleted messages visible, marked as deleted, and shows the earlier versions of edited messages. Stored only on this computer.",
       "files": {
         "linux-x86_64": {
-          "file": "files/dev.webox.plugins.message-logger/1.2.0/linux-x86_64/libcollabhost_message_logger.so",
-          "sha256": "091472bf97eda2b7b9f2d33e367e75c37b6498da687e56d7a46ef722a3e0262d",
-          "size": 549824
+          "file": "files/dev.webox.plugins.message-logger/1.2.1/linux-x86_64/libcollabhost_message_logger.so",
+          "sha256": "5672271a1451d5d7b1fc060988982bcfd50de06b9da739897070839a40f4b739",
+          "size": 549328
         },
         "windows-x86_64": {
-          "file": "files/dev.webox.plugins.message-logger/1.2.0/windows-x86_64/collabhost_message_logger.dll",
-          "sha256": "d53d9069d9c494a1f30e498466527ffdcdb605120e9fc2074f8c28924d93317c",
-          "size": 395776
+          "file": "files/dev.webox.plugins.message-logger/1.2.1/windows-x86_64/collabhost_message_logger.dll",
+          "sha256": "043e8078b2a38051427ad34d573cfaeddb258d402bec863b1f6dc78ba3e68229",
+          "size": 395264
         }
       },
       "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/message-logger",
-      "name": "Nachrichtenprotokoll",
+      "name": "Message Logger",
       "pkg": "dev.webox.plugins.message-logger",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "authors": [
@@ -81,20 +81,20 @@
       "description": "Rainbow accents across Webox, in the colours of the Pride flag.",
       "files": {
         "linux-x86_64": {
-          "file": "files/dev.webox.plugins.pride-theme/1.6.0/linux-x86_64/libcollabhost_pride_theme.so",
-          "sha256": "99b8085585c4c1656cd66a532315667af451984c0abf02a11e67f1f8f763c4f5",
-          "size": 371672
+          "file": "files/dev.webox.plugins.pride-theme/1.6.1/linux-x86_64/libcollabhost_pride_theme.so",
+          "sha256": "cc69966befe1b24ddb67ac4caf5fb4e55d20a310ef7f30557fd685cbdadcc97d",
+          "size": 371560
         },
         "windows-x86_64": {
-          "file": "files/dev.webox.plugins.pride-theme/1.6.0/windows-x86_64/collabhost_pride_theme.dll",
-          "sha256": "49edaf1f8e63cb058fa9f859811f85111a3358ddd2e279717ddbb3bb03f52351",
+          "file": "files/dev.webox.plugins.pride-theme/1.6.1/windows-x86_64/collabhost_pride_theme.dll",
+          "sha256": "6cab4322b7403fb154e0fad4bbd341e4d21abfa06c6cf3aafa701e758a0e789b",
           "size": 194048
         }
       },
       "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/pride-theme",
       "name": "Pride Theme",
       "pkg": "dev.webox.plugins.pride-theme",
-      "version": "1.6.0"
+      "version": "1.6.1"
     },
     {
       "authors": [
@@ -104,20 +104,20 @@
       "description": "Adds /shrug, /tableflip and /count, and turns :) into a smiley.",
       "files": {
         "linux-x86_64": {
-          "file": "files/dev.webox.plugins.slash-commands/1.6.0/linux-x86_64/libcollabhost_slash_commands.so",
-          "sha256": "ab7b20e96b65d32ea8f9ed21dcce81faa85526d72e2218d50863c432d7b86884",
-          "size": 344008
+          "file": "files/dev.webox.plugins.slash-commands/1.6.1/linux-x86_64/libcollabhost_slash_commands.so",
+          "sha256": "8fb0d89bec55927e1d1a660b3898aad09312617d23a79193b37cc0cdd60a0e0f",
+          "size": 343928
         },
         "windows-x86_64": {
-          "file": "files/dev.webox.plugins.slash-commands/1.6.0/windows-x86_64/collabhost_slash_commands.dll",
-          "sha256": "2653b0c83bd245cae44d6a1b5c1acac5e8cb7bdd4b52dbdaa9abdce26b8be119",
+          "file": "files/dev.webox.plugins.slash-commands/1.6.1/windows-x86_64/collabhost_slash_commands.dll",
+          "sha256": "7748ad84ad15051c26815a8fe536db2313545a82e40df1d5a5c7fc8fb26e8b3f",
           "size": 174592
         }
       },
       "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/slash-commands",
       "name": "Slash Commands",
       "pkg": "dev.webox.plugins.slash-commands",
-      "version": "1.6.0"
+      "version": "1.6.1"
     },
     {
       "authors": [
@@ -127,20 +127,20 @@
       "description": "More camera options: a video file or a picture instead of the camera, a blurred or replaced background, mirror, brightness and contrast, a soft-focus face filter, your name on screen and a low-light boost. Everything runs on this computer.",
       "files": {
         "linux-x86_64": {
-          "file": "files/dev.webox.plugins.video/1.0.0/linux-x86_64/libcollabhost_video.so",
-          "sha256": "1f8219d39140f371d32d66e3a0bb1bdb460f9a44cb3609f1e82f0455bd6ba560",
-          "size": 16902448
+          "file": "files/dev.webox.plugins.video/1.0.1/linux-x86_64/libcollabhost_video.so",
+          "sha256": "c046d03d22f8fb0ee0b0b09a0d86ec04d89101ee5c11879334c05d7b45bae772",
+          "size": 16902320
         },
         "windows-x86_64": {
-          "file": "files/dev.webox.plugins.video/1.0.0/windows-x86_64/collabhost_video.dll",
-          "sha256": "220253d7d82ac052e0f54450b710f74a17c40a496d6d42fc36f87b7cc224391e",
+          "file": "files/dev.webox.plugins.video/1.0.1/windows-x86_64/collabhost_video.dll",
+          "sha256": "19d4c2f8e0b0a5d48d647b8166bfac0bd8289e408e6a15b3ae3b5dd0bc015567",
           "size": 18804224
         }
       },
       "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/video",
       "name": "Video",
       "pkg": "dev.webox.plugins.video",
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     {
       "authors": [
@@ -150,20 +150,20 @@
       "description": "Shows small avatars of the people who reacted next to each reaction, with their names on hover.",
       "files": {
         "linux-x86_64": {
-          "file": "files/dev.webox.plugins.who-reacted/1.0.0/linux-x86_64/libcollabhost_who_reacted.so",
-          "sha256": "5ed21201fa63f96d21784dde0c2be2203c5df2f495737223dcb202cbca9707bf",
-          "size": 439968
+          "file": "files/dev.webox.plugins.who-reacted/1.0.1/linux-x86_64/libcollabhost_who_reacted.so",
+          "sha256": "d50b620c20e8cfab69af88b9159a0b2442760f16f7e097a70054fc2f15d912f3",
+          "size": 439904
         },
         "windows-x86_64": {
-          "file": "files/dev.webox.plugins.who-reacted/1.0.0/windows-x86_64/collabhost_who_reacted.dll",
-          "sha256": "0fa26aef72b88c2ccded2c308d2027154966bff28e492a1878e506a31a293554",
-          "size": 260608
+          "file": "files/dev.webox.plugins.who-reacted/1.0.1/windows-x86_64/collabhost_who_reacted.dll",
+          "sha256": "65cd59d5fc1c5fe1cc98f3444689cf3bd3d5d9cd62b73a4e28fa65a335626719",
+          "size": 260096
         }
       },
       "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/who-reacted",
-      "name": "Wer hat reagiert",
+      "name": "Who Reacted",
       "pkg": "dev.webox.plugins.who-reacted",
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   ]
 }
