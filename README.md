@@ -19,21 +19,21 @@
 
 [Webox](https://github.com/PianoNic/Webox) can be extended with native plugins: slash commands, message filters, colour themes. A plugin can have its own settings, which Webox shows on the plugin's page. This repository holds the official ones, one crate per plugin, in a single Cargo workspace.
 
-On every push to `main`, CI builds every plugin for Windows and Linux, hashes the binaries and publishes them, together with an index, to the [`repo`](https://github.com/PianoNic/WeboxPlugins/tree/repo) branch. Webox reads that index, lists the plugins under **Einstellungen > Plugins > Verfügbar**, and installs, updates and removes them without a restart. This works like extension repositories in Aniyomi.
+On every push to `main`, CI builds every plugin for Windows and Linux, hashes the binaries and publishes them, together with an index, to the [`repo`](https://github.com/PianoNic/WeboxPlugins/tree/repo) branch. Webox reads that index, lists the plugins under **Settings > Plugins > Available**, and installs, updates and removes them without a restart. This works like extension repositories in Aniyomi.
 
 ## Plugins
 
 | Plugin | What it does |
 | --- | --- |
 | [Slash Commands](plugins/slash-commands) | `/shrug`, `/tableflip` and `/count`, and turns `:)` into a smiley. Settings: the smiley switch, your own `/shrug` text, a counter reset. |
-| [Nachrichtenprotokoll](plugins/message-logger) | Equicord's MessageLogger: deleted messages stay visible (red text or a red overlay, optionally folded), edited messages show their earlier versions, optionally as a coloured diff, and "(bearbeitet)" opens the edit history dialog. All of Equicord's settings (ignore bots, yourself, people, spaces, teams). Right-click entries toggle the highlight or the diff view and clear a message's history or a space's log. Stored only on this computer. |
+| [Message Logger](plugins/message-logger) | Equicord's MessageLogger: deleted messages stay visible (red text or a red overlay, optionally folded), edited messages show their earlier versions, optionally as a coloured diff, and "(edited)" opens the edit history dialog. All of Equicord's settings (ignore bots, yourself, people, spaces, teams). Right-click entries toggle the highlight or the diff view and clear a message's history or a space's log. Stored only on this computer. |
 | [Video](plugins/video) | More camera options: a video file or a picture instead of the camera, the background blurred or replaced by a picture or a looping video (person segmentation on the CPU), mirror, brightness and contrast, a soft-focus face filter, your name as a lower third, a low-light boost. Everything runs on this computer. Needs a Webox with `camera.filter`. |
 | [Pride Theme](plugins/pride-theme) | Webox in the colours of a Pride flag: accents, a wash behind rail and header, rainbow card rims, a flag band on the rail, avatar rings, rainbow toggles, scrollbars and send button, confetti when sending, a June "Happy Pride!". Eight flags (Rainbow, Progress Pride, Trans, Bi, Lesbian, Pan, Non-binary, Ace); every decoration is a switch. Text stays readable (WCAG AA) on every theme, dark and light. |
-| [Wer hat reagiert](plugins/who-reacted) | Small avatars of the people who reacted next to each reaction, then "+N", names on hover. Settings: on/off, how many, size, hide your own. |
+| [Who Reacted](plugins/who-reacted) | Small avatars of the people who reacted next to each reaction, then "+N", names on hover. Settings: on/off, how many, size, hide your own. |
 
 ## Installing
 
-Webox has this repository built in. Open **Einstellungen > Plugins**, switch to **Verfügbar** and press **Installieren**.
+Webox has this repository built in. Open **Settings > Plugins**, switch to **Available** and press **Install**.
 
 Any other repository built the same way can be added under **Repositories** with the URL of its `index.min.json`:
 

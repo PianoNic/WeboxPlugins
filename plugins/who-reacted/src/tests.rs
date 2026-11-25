@@ -16,7 +16,7 @@ fn defaults_match_the_schema() {
 #[test]
 fn schema_has_the_four_german_settings() {
     let s = WhoReacted::default().settings().unwrap().to_json();
-    for label in ["Avatare anzeigen", "Höchstens anzeigen", "Größe", "Klein", "Mittel", "Eigene Reaktion ausblenden"] { assert!(s.contains(label), "{label}"); }
+    for label in ["Show avatars", "Show at most", "Size", "Small", "Medium", "Hide your own reaction"] { assert!(s.contains(label), "{label}"); }
     let v: Value = serde_json::from_str(&s).unwrap();
     let max = v["sections"][0]["fields"].as_array().unwrap().iter().find(|f| f["id"] == "max").unwrap().clone();
     assert_eq!((max["min"].as_f64(), max["max"].as_f64(), max["step"].as_f64()), (Some(1.0), Some(10.0), Some(1.0)));
@@ -35,9 +35,9 @@ fn settings_become_the_method_argument() {
 
 #[test]
 fn host_errors_are_read() {
-    assert_eq!(error_of(r#"{"error":"size: small oder medium"}"#).as_deref(), Some("size: small oder medium"));
+    assert_eq!(error_of(r#"{"error":"size: small or medium"}"#).as_deref(), Some("size: small or medium"));
     assert_eq!(error_of("{}"), None);
-    assert_eq!(error_of("kein json"), None);
+    assert_eq!(error_of("not json"), None);
 }
 
 #[test]

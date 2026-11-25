@@ -122,7 +122,7 @@ impl Pipe {
         // never shows while the model loads
         if m.is_none() && self.smooth.alpha.is_empty() { m = w.wait(Duration::from_millis(12)); }
         if let Some(e) = &w.failed {
-            if !self.failed { self.host.log(&format!("Segmentierung: {e}")); self.failed = true; }
+            if !self.failed { self.host.log(&format!("Segmentation: {e}")); self.failed = true; }
             return false;
         }
         match m {
@@ -141,7 +141,7 @@ impl Pipe {
             let r = self.host.call("media.open", &format!("{{\"path\":{},\"width\":{w},\"height\":{h}}}", json_str(path))).unwrap_or_default();
             let v = Values::parse(&r);
             let Some(id) = v.number("id") else {
-                self.host.log(&format!("Hintergrund: {}", v.text("error").unwrap_or("lässt sich nicht öffnen")));
+                self.host.log(&format!("Background: {}", v.text("error").unwrap_or("cannot be opened")));
                 // remembered as failed for this path and size: no retry every frame
                 self.clip = Some(Clip { path: path.into(), w, h, id: 0, still: true, px: vec![], read: true });
                 return false;
@@ -180,14 +180,14 @@ impl Video {
         let c = lock(&self.cfg).clone();
         if !h.has("camera.filter") {
             if !self.warned && (c.any_effect() || !c.source.is_empty()) {
-                h.toast("Diese Webox-Version gibt Plugins keine Kamerabilder. Bitte Webox aktualisieren.");
+                h.toast("This Webox version does not give plugins camera pictures. Please update Webox.");
                 self.warned = true;
             }
             return;
         }
         if c.source != self.source {
             let r = h.call("camera.source", &format!("{{\"path\":{}}}", json_str(&c.source))).unwrap_or_default();
-            if let Some(e) = Values::parse(&r).text("error") { h.toast(&format!("Videoquelle: {e}")); }
+            if let Some(e) = Values::parse(&r).text("error") { h.toast(&format!("Video source: {e}")); }
             self.source = c.source.clone();
         }
         if c.any_effect() && self.filter.is_none() {
@@ -210,20 +210,20 @@ impl Plugin for Video {
         let mut files: Vec<&str> = VIDEO_EXT.to_vec();
         files.extend_from_slice(PICTURE_EXT);
         Some(Schema::new()
-            .section("Videoquelle", "Was die anderen statt Ihrer Kamera sehen. Bei einer Datei bleibt die Kamera aus; ein Video läuft in einer Schleife.")
-            .choice("source", "Videoquelle", "", "camera", &[("camera", "Kamera"), ("video", "Videodatei"), ("picture", "Bild")])
-            .file("source_file", "Datei", "Videodatei oder Bild für „Videodatei“ / „Bild“.", "Videos und Bilder", &files)
-            .section("Hintergrund", "Erkennt Sie im Bild (lokal, ohne Internet) und ersetzt alles dahinter.")
-            .choice("background", "Hintergrund", "", "off", &[("off", "Aus"), ("blur", "Weichzeichnen"), ("picture", "Bild"), ("video", "Video")])
-            .file("background_file", "Hintergrunddatei", "Bild oder Video für „Bild“ / „Video“. Ein Video läuft in einer Schleife.", "Bilder und Videos", &files)
-            .number("blur", "Stärke des Weichzeichners", "", 5.0, 1.0, 8.0, 1.0)
-            .section("Bild", "Wirkt auf das Bild, das die anderen sehen. Die Vorschau unter Einstellungen > Video zeigt es.")
-            .toggle("mirror", "Spiegeln", "Die anderen sehen Sie seitenverkehrt. Ihre eigene Vorschau spiegelt Webox ohnehin.", false)
-            .number("brightness", "Helligkeit", "0 = unverändert.", 0.0, -100.0, 100.0, 5.0)
-            .number("contrast", "Kontrast", "0 = unverändert.", 0.0, -100.0, 100.0, 5.0)
-            .number("soften", "Weichzeichner fürs Gesicht", "Glättet Haut und Flächen, Kanten bleiben scharf. 0 = aus.", 0.0, 0.0, 100.0, 5.0)
-            .toggle("low_light", "Restlicht-Verstärkung", "Hellt ein dunkles Bild automatisch auf.", false)
-            .text("name", "Name einblenden", "Wird unten links eingeblendet. Leer = aus.", ""))
+            .section("Video source", "What the others see instead of your camera. With a file the camera stays off; a video loops.")
+            .choice("source", "Video source", "", "camera", &[("camera", "Camera"), ("video", "Video file"), ("picture", "Picture")])
+            .file("source_file", "File", "Video file or picture for \"Video file\" / \"Picture\".", "Videos and pictures", &files)
+            .section("Background", "Finds you in the picture (locally, without internet) and replaces everything behind you.")
+            .choice("background", "Background", "", "off", &[("off", "Off"), ("blur", "Blur"), ("picture", "Picture"), ("video", "Video")])
+            .file("background_file", "Background file", "Picture or video for \"Picture\" / \"Video\". A video loops.", "Pictures and videos", &files)
+            .number("blur", "Blur strength", "", 5.0, 1.0, 8.0, 1.0)
+            .section("Picture", "Applies to the picture the others see. The preview under Settings > Video shows it.")
+            .toggle("mirror", "Mirror", "The others see you mirrored. Webox mirrors your own preview anyway.", false)
+            .number("brightness", "Brightness", "0 = unchanged.", 0.0, -100.0, 100.0, 5.0)
+            .number("contrast", "Contrast", "0 = unchanged.", 0.0, -100.0, 100.0, 5.0)
+            .number("soften", "Soft focus for the face", "Smooths skin and flat areas, edges stay sharp. 0 = off.", 0.0, 0.0, 100.0, 5.0)
+            .toggle("low_light", "Low-light boost", "Brightens a dark picture automatically.", false)
+            .text("name", "Show name", "Shown bottom left. Empty = off.", ""))
     }
 
     fn settings_changed(&mut self, v: &Values) {
@@ -278,7 +278,7 @@ mod tests {
         for id in ["source", "source_file", "background", "background_file", "mirror", "brightness", "contrast", "soften", "low_light", "name"] {
             assert!(j.contains(&format!("\"id\":\"{id}\"")), "{id}");
         }
-        assert!(j.contains("\"type\":\"file\"") && j.contains("Weichzeichnen") && j.contains("Restlicht-Verstärkung"));
+        assert!(j.contains("\"type\":\"file\"") && j.contains("Blur") && j.contains("Low-light boost"));
     }
 
     /// The whole pipeline on a synthetic 1280x720 frame with every cheap effect on (no host needed without a background).

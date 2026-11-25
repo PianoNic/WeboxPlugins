@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_message_logger"
-version = "1.2.0"
+version = "1.2.1"
 description = "Keeps deleted messages visible, marked as deleted, and shows the earlier versions of edited messages. Stored only on this computer."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/message-logger"
@@ -10,7 +10,7 @@ repository.workspace = true
 
 # What the repository index says about this plugin (docs: CONTRIBUTING.md).
 [package.metadata.webox]
-name = "Nachrichtenprotokoll"
+name = "Message Logger"
 pkg = "dev.webox.plugins.message-logger"
 
 [lib]

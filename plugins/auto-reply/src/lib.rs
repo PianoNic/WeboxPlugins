@@ -1,4 +1,4 @@
-//! Auto-Antwort: answers incoming messages in the user's own voice. An LLM gets the conversation and the user's own past
+//! Auto Reply: answers incoming messages in the user's own voice. An LLM gets the conversation and the user's own past
 //! messages as style examples, and writes the reply the user would write (or none). Off by default; by default it only
 //! suggests the reply in a toast. Uses the contract 1.6 event `message.received` and the methods `space.history` and
 //! `space.send`.
@@ -82,21 +82,21 @@ impl Incoming {
 
 /// Why `m` gets no auto-reply now (None = it gets one). Reasons in [`QUIET`] are not logged (they fit almost every message).
 fn skip(cfg: &Cfg, st: &State, m: &Incoming, now: Instant) -> Option<&'static str> {
-    if !cfg.on { return Some("ausgeschaltet"); }
-    if m.mine { return Some("eigene Nachricht"); }
-    if m.text.trim().is_empty() { return Some("leere Nachricht"); }
-    if !(m.direct || (cfg.groups && m.mentioned)) { return Some("kein 1:1-Chat"); }
+    if !cfg.on { return Some("switched off"); }
+    if m.mine { return Some("own message"); }
+    if m.text.trim().is_empty() { return Some("empty message"); }
+    if !(m.direct || (cfg.groups && m.mentioned)) { return Some("not a 1:1 chat"); }
     let listed = cfg.people.iter().any(|p| *p == m.author.trim().to_lowercase());
     match cfg.people_mode.as_str() {
-        "allow" if !listed => return Some("Person nicht in der Liste"),
-        "deny" if listed => return Some("Person ausgeschlossen"),
+        "allow" if !listed => return Some("person not on the list"),
+        "deny" if listed => return Some("person excluded"),
         _ => {}
     }
-    if st.pending.contains(&m.space) { return Some("für diesen Chat läuft schon eine Antwort"); }
-    if st.last.get(&m.space).is_some_and(|t| now.duration_since(*t) < cfg.cooldown) { return Some("Abklingzeit für diesen Chat läuft noch"); }
+    if st.pending.contains(&m.space) { return Some("a reply for this chat is already on its way"); }
+    if st.last.get(&m.space).is_some_and(|t| now.duration_since(*t) < cfg.cooldown) { return Some("this chat is still in its cooldown"); }
     None
 }
-const QUIET: &[&str] = &["ausgeschaltet", "eigene Nachricht", "leere Nachricht", "kein 1:1-Chat"];
+const QUIET: &[&str] = &["switched off", "own message", "empty message", "not a 1:1 chat"];
 
 /// Whether `m` gets an auto-reply now.
 #[cfg(test)]
@@ -129,9 +129,9 @@ fn reply_job(host: Host, cfg: Cfg, space: String, author: String, pool: Vec<Stri
         // Every outcome is logged; in suggestion mode the person waits for a toast, so "nothing" gets one too.
         let tell = |t: &str| { host.log(t); if !cfg.send { host.toast(t); } };
         match hist.last() {
-            None => tell(&format!("Keine Antwort für {author}: Webox hat keinen Verlauf dieses Chats geliefert (space.history leer).")),
+            None => tell(&format!("No reply for {author}: Webox returned no history for this chat (space.history is empty).")),
             // I answered myself in the meantime: nothing to do.
-            Some(m) if m.mine => host.log(&format!("übersprungen ({author}): schon selbst geantwortet")),
+            Some(m) if m.mine => host.log(&format!("skipped ({author}): you already replied yourself")),
             Some(_) => {
                 let produced: Vec<String> = lock(&state).produced.iter().cloned().collect();
                 let prompt = llm::user_prompt(&hist, &llm::style_examples(&hist, &pool, &produced));
@@ -141,14 +141,14 @@ fn reply_job(host: Host, cfg: Cfg, space: String, author: String, pool: Vec<Stri
                         Ok(Some(r)) if cfg.send => {
                             let answer = host.call("space.send", &serde_json::json!({ "space": space, "text": r }).to_string()).unwrap_or_default();
                             match serde_json::from_str::<serde_json::Value>(&answer).ok().and_then(|v| v["error"].as_str().map(String::from)) {
-                                Some(e) => { host.log(&format!("Senden fehlgeschlagen: {e}")); host.toast(&format!("Senden fehlgeschlagen: {e}")) }
-                                None => host.log(&format!("an {author} gesendet")),
+                                Some(e) => { host.log(&format!("Sending failed: {e}")); host.toast(&format!("Sending failed: {e}")) }
+                                None => host.log(&format!("sent to {author}")),
                             }
                         }
-                        Ok(Some(r)) => { host.log(&format!("Vorschlag für {author} erstellt")); host.toast(&format!("Vorschlag für {author}: {r}")) }
-                        Ok(None) => tell(&format!("Keine Antwort nötig ({author}): das Modell hat {} geantwortet.", llm::NO_REPLY)),
+                        Ok(Some(r)) => { host.log(&format!("suggestion for {author} created")); host.toast(&format!("Suggestion for {author}: {r}")) }
+                        Ok(None) => tell(&format!("No reply needed ({author}): the model answered {}.", llm::NO_REPLY)),
                         // Errors always show, also when sending automatically.
-                        Err(e) => { host.log(&format!("Anbieter-Fehler: {e}")); host.toast(&format!("Anbieter-Fehler: {e}")) }
+                        Err(e) => { host.log(&format!("Provider error: {e}")); host.toast(&format!("Provider error: {e}")) }
                     }
                     let mut st = lock(&state);
                     if let Ok(Some(r)) = &res { st.produced.push_back(r.clone()); if st.produced.len() > POOL { st.produced.pop_front(); } }
@@ -168,7 +168,7 @@ impl AutoReply {
 }
 
 impl Plugin for AutoReply {
-    const NAME: &'static str = "Auto-Antwort";
+    const NAME: &'static str = "Auto Reply";
     const AUTHOR: &'static str = "Webox examples";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
@@ -177,7 +177,7 @@ impl Plugin for AutoReply {
     fn start(&mut self, host: Host) {
         self.cancel.store(false, Ordering::Relaxed);
         if !["message.received", "space.history", "space.send"].iter().all(|n| host.has(n)) {
-            host.toast("Diese Webox-Version meldet Plugins keine eingehenden Nachrichten (message.received, space.history oder space.send fehlt). Bitte Webox aktualisieren.");
+            host.toast("This Webox version does not tell plugins about incoming messages (message.received, space.history or space.send is missing). Please update Webox.");
         }
         self.host = Some(host);
     }
@@ -191,41 +191,41 @@ impl Plugin for AutoReply {
 
     fn settings(&self) -> Option<Schema> {
         Some(Schema::new()
-            .section("Auto-Antwort", "Beantwortet eingehende Nachrichten in Ihrem eigenen Stil: Ein Sprachmodell liest den Verlauf und Ihre früheren Nachrichten und schreibt die Antwort, die Sie schreiben würden, oder keine.")
-            .toggle("on", "Auto-Antwort einschalten", "", false)
-            .choice("mode", "Modus", "Ein Vorschlag erscheint als Hinweis; „Automatisch senden“ schickt die Antwort selbst.", "suggest",
-                &[("suggest", "Vorschlag als Toast"), ("send", "Automatisch senden")])
-            .choice("scope", "Wann antworten", "", "direct", &[("direct", "Nur in 1:1-Chats"), ("mentions", "1:1-Chats und Gruppen, wenn ich @-erwähnt werde")])
-            .choice("people_mode", "Personen", "", "all", &[("all", "Alle"), ("allow", "Nur Personen aus der Liste"), ("deny", "Alle außer Personen aus der Liste")])
-            .multiline("people", "Liste", "Ein Anzeigename pro Zeile, wie er in Webox steht.", "")
-            .number("delay", "Verzögerung (s)", "So lange wird gewartet; antworten Sie in der Zeit selbst, entfällt die Auto-Antwort.", 20.0, 0.0, 600.0, 1.0)
-            .number("cooldown", "Höchstens eine Auto-Antwort pro Bereich alle (min)", "Verhindert Endlosschleifen mit anderen Bots.", 10.0, 1.0, 1440.0, 1.0)
-            .section("Sprachmodell", "Lokale CLIs laufen ohne Werkzeuge und mit Ihrem dortigen Login.")
-            .choice("provider", "Anbieter", "", "claude", &[("claude", "Claude Code (claude)"), ("codex", "Codex (codex)"), ("cursor", "Cursor (cursor-agent)"), ("custom", "Eigener Endpunkt (OpenAI-kompatibel)")])
-            .text("cli", "Programmpfad", "Leer = claude / codex / cursor-agent / curl aus dem PATH.", "")
-            .text("model", "Modell", "Leer = Standard des CLIs. Beim eigenen Endpunkt erforderlich.", "")
-            .text("endpoint", "Endpunkt-URL", "Nur für den eigenen Endpunkt, z. B. https://api.openai.com/v1 (…/chat/completions wird ergänzt).", "")
-            .password("token", "API-Token", "Nur für den eigenen Endpunkt. Wird im Schlüsselbund gespeichert.")
-            .button("test", "Verbindung testen", "Fragt das Sprachmodell einmal und zeigt das Ergebnis."))
+            .section("Auto Reply", "Answers incoming messages in your own style: a language model reads the conversation and your earlier messages and writes the reply you would write, or none.")
+            .toggle("on", "Turn on Auto Reply", "", false)
+            .choice("mode", "Mode", "A suggestion shows as a notification; \"Send automatically\" sends the reply itself.", "suggest",
+                &[("suggest", "Suggest in a toast"), ("send", "Send automatically")])
+            .choice("scope", "When to reply", "", "direct", &[("direct", "Only in 1:1 chats"), ("mentions", "1:1 chats, and groups when I am @-mentioned")])
+            .choice("people_mode", "People", "", "all", &[("all", "Everyone"), ("allow", "Only people on the list"), ("deny", "Everyone except people on the list")])
+            .multiline("people", "List", "One display name per line, as Webox shows it.", "")
+            .number("delay", "Delay (s)", "How long to wait; if you reply yourself in that time, there is no auto reply.", 20.0, 0.0, 600.0, 1.0)
+            .number("cooldown", "At most one auto reply per space every (min)", "Prevents endless loops with other bots.", 10.0, 1.0, 1440.0, 1.0)
+            .section("Language model", "Local CLIs run without tools and with your login there.")
+            .choice("provider", "Provider", "", "claude", &[("claude", "Claude Code (claude)"), ("codex", "Codex (codex)"), ("cursor", "Cursor (cursor-agent)"), ("custom", "Custom endpoint (OpenAI-compatible)")])
+            .text("cli", "Program path", "Empty = claude / codex / cursor-agent / curl from the PATH.", "")
+            .text("model", "Model", "Empty = the CLI's default. Required for a custom endpoint.", "")
+            .text("endpoint", "Endpoint URL", "Only for a custom endpoint, e.g. https://api.openai.com/v1 (…/chat/completions is added).", "")
+            .password("token", "API token", "Only for a custom endpoint. Stored in the OS keyring.")
+            .button("test", "Test connection", "Asks the language model once and shows the result."))
     }
     fn settings_changed(&mut self, v: &Values) { self.cfg = Cfg::from(v); }
     fn settings_action(&mut self, id: &str) -> Option<String> {
         if id != "test" { return None; }
-        let Some(host) = self.host else { return Some("Bitte das Plugin zuerst einschalten.".into()) };
+        let Some(host) = self.host else { return Some("Please turn the plugin on first.".into()) };
         let (llm, cancel) = (self.cfg.llm.clone(), self.cancel.clone());
         self.spawn(move || {
             let t0 = Instant::now();
-            let hist = [Msg { author: "Test".into(), mine: false, text: "Hallo! Kurzer Verbindungstest, alles gut bei dir?".into() }];
+            let hist = [Msg { author: "Test".into(), mine: false, text: "Hi! Quick connection test, how are you?".into() }];
             let res = llm.ask(&llm::user_prompt(&hist, &[]), &cancel);
             if cancel.load(Ordering::Relaxed) { return; }
             let s = t0.elapsed().as_secs_f32();
             host.toast(&match res {
-                Ok(Some(r)) => format!("Verbindung ok ({s:.1} s): {r}"),
-                Ok(None) => format!("Verbindung ok ({s:.1} s), das Modell wollte nicht antworten"),
-                Err(e) => format!("Verbindung fehlgeschlagen: {e}"),
+                Ok(Some(r)) => format!("Connection ok ({s:.1} s): {r}"),
+                Ok(None) => format!("Connection ok ({s:.1} s), the model chose not to reply"),
+                Err(e) => format!("Connection failed: {e}"),
             });
         });
-        Some("Test läuft, das Ergebnis erscheint als Hinweis.".into())
+        Some("Test running, the result shows as a notification.".into())
     }
 
     fn on_event(&mut self, name: &str, payload: &str) -> Option<String> {
@@ -244,7 +244,7 @@ impl AutoReply {
         {
             let mut st = lock(&self.state);
             if let Some(why) = skip(&self.cfg, &st, m, Instant::now()) {
-                if !QUIET.contains(&why) { host.log(&format!("übersprungen ({}): {why}", m.author)); }
+                if !QUIET.contains(&why) { host.log(&format!("skipped ({}): {why}", m.author)); }
                 return;
             }
             st.pending.insert(m.space.clone());

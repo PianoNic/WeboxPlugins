@@ -25,11 +25,11 @@ impl Plugin for SlashCommands {
 
     fn settings(&self) -> Option<Schema> {
         Some(Schema::new()
-            .section("Ersetzungen", "Was beim Senden einer Nachricht ersetzt wird.")
-            .toggle("smiley", "„:)“ durch \u{1f642} ersetzen", "Gilt für jede gesendete Nachricht.", true)
-            .section("Befehle", "")
-            .text("shrug_text", "Text für /shrug", "Wird nach dem Text gesendet, den Sie hinter /shrug schreiben.", SHRUG)
-            .button("reset_count", "Zähler für /count zurücksetzen", "Setzt die Zahl der gesendeten Nachrichten auf 0."))
+            .section("Replacements", "What is replaced when a message is sent.")
+            .toggle("smiley", "Replace \":)\" with \u{1f642}", "Applies to every message you send.", true)
+            .section("Commands", "")
+            .text("shrug_text", "Text for /shrug", "Sent after the text you write after /shrug.", SHRUG)
+            .button("reset_count", "Reset the /count counter", "Sets the number of sent messages to 0."))
     }
     fn settings_changed(&mut self, v: &Values) {
         self.smiley = v.bool("smiley").unwrap_or(true);
@@ -39,7 +39,7 @@ impl Plugin for SlashCommands {
         (id == "reset_count").then(|| {
             self.sent = 0;
             if let Some(h) = self.host { h.set("sent", "0") }
-            "Zähler zurückgesetzt".to_string()
+            "Counter reset".to_string()
         })
     }
 
@@ -82,7 +82,7 @@ mod tests {
         assert_eq!(p.on_send("ok :)"), None);
         assert_eq!(p.command("shrug", "").as_deref(), Some("meh"));
         p.sent = 5;
-        assert_eq!(p.settings_action("reset_count").as_deref(), Some("Zähler zurückgesetzt"));
+        assert_eq!(p.settings_action("reset_count").as_deref(), Some("Counter reset"));
         assert_eq!(p.sent, 0);
         assert_eq!(p.settings_action("other"), None);
     }

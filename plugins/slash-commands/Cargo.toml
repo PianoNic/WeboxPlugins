@@ -1,6 +1,6 @@
 [package]
 name = "collabhost_slash_commands"
-version = "1.6.0"
+version = "1.6.1"
 description = "Adds /shrug, /tableflip and /count, and turns :) into a smiley."
 authors = ["Webox examples"]
 homepage = "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/slash-commands"

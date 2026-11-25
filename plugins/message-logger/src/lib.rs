@@ -1,17 +1,17 @@
-//! Nachrichtenprotokoll: Equicord's MessageLogger for Webox. Deleted messages stay visible, marked as deleted; edited
-//! messages show their earlier versions, optionally as a coloured diff; "(bearbeitet)" opens the edit history dialog.
+//! Message Logger: Equicord's MessageLogger for Webox. Deleted messages stay visible, marked as deleted; edited
+//! messages show their earlier versions, optionally as a coloured diff; "(edited)" opens the edit history dialog.
 //!
 //! Contract 1.6 events and methods (docs/plugins.md in the Webox repository):
 //! - `message.deleted` / `message.edited`: the answer keeps the deleted message (`{"keep", "style", "collapsed",
 //!   "attachments"}`) or attaches the earlier texts (`{"history", "current", "inline"}`, plain strings or diff spans).
 //! - `message.keep` gives the whole log back after a settings change, a menu action or a restart (`replace`).
-//! - `message.menu` / `message.menu_action`: "Gelöscht-Markierung umschalten", "Änderungsvergleich aktivieren / deaktivieren",
-//!   "Nachrichtenverlauf löschen" (Equicord's Toggle Deleted Highlight, Enable / Disable Diff View, Clear Message History).
-//! - `space.menu` / `space.menu_action`: "Protokoll leeren" on a space with something logged (Equicord's Clear Message Log).
-//! - `message.edit_tag_clicked` + `ui.dialog`: the "Bearbeitungsverlauf" dialog (Equicord's HistoryModal), one tab per version
-//!   and the switch "Unterschiede anzeigen".
+//! - `message.menu` / `message.menu_action`: "Toggle Deleted Highlight", "Enable Diff View" / "Disable Diff View" and
+//!   "Clear Message History", as in Equicord.
+//! - `space.menu` / `space.menu_action`: "Clear Message Log" on a space with something logged, as in Equicord.
+//! - `message.edit_tag_clicked` + `ui.dialog`: the "Message Edit History" dialog (Equicord's HistoryModal), one tab per version
+//!   and the switch "Show Diff".
 //!
-//! Everything stays on this computer: in memory, and only with "Nach Neustart behalten" also in the plugin's data store
+//! Everything stays on this computer: in memory, and only with "Keep the log after a restart" also in the plugin's data store
 //! (`host.set`, Webox's plugin-data.json). Nothing is ever sent.
 use collabhost_plugin_api::{export_plugin, Host, Plugin, Schema, Values};
 use serde_json::{json, Value};
@@ -30,13 +30,13 @@ const STORE: &str = "log";
 /// The settings, named after Equicord's (`deleteStyle`, `logDeletes`, ...), plus "persist".
 #[derive(Clone, Debug, PartialEq)]
 struct Cfg {
-    /// deleteStyle: "text" (Roter Text) or "overlay" (Rote Überlagerung).
+    /// deleteStyle: "text" (Red text) or "overlay" (Red overlay).
     style: String,
     log_deletes: bool,
-    /// collapseDeleted: folded like blocked messages ("N gelöschte Nachrichten"), a click unfolds them.
+    /// collapseDeleted: folded like blocked messages ("N deleted messages"), a click unfolds them.
     collapse: bool,
     log_edits: bool,
-    /// inlineEdits: the earlier texts in the message; off: only "(bearbeitet)", whose dialog shows them.
+    /// inlineEdits: the earlier texts in the message; off: only "(edited)", whose dialog shows them.
     inline: bool,
     /// logDeletedAttachments: a kept deleted message keeps its pictures, files and link cards.
     attachments: bool,
@@ -124,7 +124,7 @@ impl Log {
     /// Equicord's `clearMessageHistory`: a deleted message is forgotten (Webox then removes it as any deleted message), an
     /// edited one loses its earlier texts.
     fn clear_message(&mut self, id: &str) { self.deleted.retain(|r| s(r, "id") != id); self.edited.retain(|r| s(r, "id") != id); }
-    /// "Protokoll leeren": everything logged in `space`.
+    /// "Clear Message Log": everything logged in `space`.
     fn clear_space(&mut self, space: &str) { self.deleted.retain(|r| s(r, "space") != space); self.edited.retain(|r| s(r, "space") != space); }
 
     fn add_deleted(&mut self, rec: Value) {
@@ -178,9 +178,9 @@ fn texts(rec: &Value) -> (Vec<String>, String) {
 /// Per-message states of this session, as in Equicord (not stored).
 #[derive(Clone, Debug, Default, PartialEq)]
 struct Session {
-    /// "Gelöscht-Markierung umschalten": deleted messages drawn without highlight.
+    /// "Toggle Deleted Highlight": deleted messages drawn without highlight.
     plain: HashSet<String>,
-    /// "Änderungsvergleich deaktivieren": messages without the diff view.
+    /// "Disable Diff View": messages without the diff view.
     no_diff: HashSet<String>,
 }
 
@@ -230,13 +230,13 @@ impl MessageLogger {
         let mut v = vec![];
         if id.is_empty() || !self.log.has_history(id) { return v; }
         if ev["deleted"] == true && self.log.is_deleted(id) {
-            v.push(json!({ "id": "toggle-deleted", "label": "Gelöscht-Markierung umschalten", "icon": "show-regular" }));
+            v.push(json!({ "id": "toggle-deleted", "label": "Toggle Deleted Highlight", "icon": "show-regular" }));
         }
         if self.cfg.diffs && self.log.edit(id).is_some() {
             let on = self.diffs_for(id);
-            v.push(json!({ "id": "toggle-diff", "label": if on { "Änderungsvergleich deaktivieren" } else { "Änderungsvergleich aktivieren" }, "danger": true }));
+            v.push(json!({ "id": "toggle-diff", "label": if on { "Disable Diff View" } else { "Enable Diff View" }, "danger": true }));
         }
-        v.push(json!({ "id": "clear-history", "label": "Nachrichtenverlauf löschen", "icon": "recents-regular", "danger": true }));
+        v.push(json!({ "id": "clear-history", "label": "Clear Message History", "icon": "recents-regular", "danger": true }));
         v
     }
 
@@ -253,9 +253,9 @@ impl MessageLogger {
         true
     }
 
-    /// The "Bearbeitungsverlauf" dialog for a click on "(bearbeitet)" (`message.edit_tag_clicked` payload): Equicord's
+    /// The "Message Edit History" dialog for a click on "(edited)" (`message.edit_tag_clicked` payload): Equicord's
     /// HistoryModal. One tab per logged version (with the time it became the text) and the current one, which is shown first;
-    /// before them a greyed tab when the original text was never seen. "Unterschiede anzeigen" diffs each against the newest.
+    /// before them a greyed tab when the original text was never seen. "Show Diff" diffs each against the newest.
     fn history_dialog(&self, ev: &Value) -> Value {
         let id = s(ev, "id");
         let rec = self.log.edit(id).filter(|r| !self.cfg.ignores(r, true));
@@ -267,11 +267,11 @@ impl MessageLogger {
         let unseen = rec.is_none_or(|r| r["old_edited"] == true);
         let published = ev["published_ms"].as_i64().or_else(|| rec.and_then(|r| r["published_ms"].as_i64())).unwrap_or(0);
         if unseen && published > 0 {
-            tabs.push(json!({ "time_ms": published, "text": "", "disabled": true, "hint": "Dieser Bearbeitungsstand wurde nicht protokolliert und kann nicht angezeigt werden." }));
+            tabs.push(json!({ "time_ms": published, "text": "", "disabled": true, "hint": "This edit state was not logged so it can't be displayed." }));
         }
         // As Equicord: no diff for a message whose diff view was switched off from its menu.
         let can_diff = !self.session.no_diff.contains(id);
-        let label = |ms: i64| if ms > 0 { json!({ "time_ms": ms }) } else { json!({ "label": "Frühere Fassung" }) };
+        let label = |ms: i64| if ms > 0 { json!({ "time_ms": ms }) } else { json!({ "label": "Earlier version" }) };
         for (t, ms) in h.iter().zip(ms) {
             let mut tab = label(ms);
             tab["text"] = json!(t);
@@ -281,11 +281,11 @@ impl MessageLogger {
             }
             tabs.push(tab);
         }
-        let mut now = if cur_ms > 0 { json!({ "time_ms": cur_ms }) } else { json!({ "label": "Aktuelle Fassung" }) };
+        let mut now = if cur_ms > 0 { json!({ "time_ms": cur_ms }) } else { json!({ "label": "Current version" }) };
         now["text"] = json!(cur);
         tabs.push(now);
         let n = tabs.len() - 1;
-        json!({ "title": "Bearbeitungsverlauf", "tabs": tabs, "selected": n, "switch": { "label": "Unterschiede anzeigen", "on": self.diffs_for(id) } })
+        json!({ "title": "Message Edit History", "tabs": tabs, "selected": n, "switch": { "label": "Show Diff", "on": self.diffs_for(id) } })
     }
 
     /// The answer to an event (None = Webox handles it as usual), logging what it keeps.
@@ -295,7 +295,7 @@ impl MessageLogger {
             "message.menu" => { let items = self.menu(&ev); return (!items.is_empty()).then(|| json!({ "items": items }).to_string()); }
             "message.menu_action" => { if self.menu_action(&ev) { self.sync(); } return None; }
             "space.menu" => {
-                return self.log.has_space(s(&ev, "space")).then(|| json!({ "items": [{ "id": "clear-log", "label": "Protokoll leeren", "danger": true }] }).to_string());
+                return self.log.has_space(s(&ev, "space")).then(|| json!({ "items": [{ "id": "clear-log", "label": "Clear Message Log", "danger": true }] }).to_string());
             }
             "space.menu_action" => {
                 if s(&ev, "item") == "clear-log" && self.log.has_space(s(&ev, "space")) { self.log.clear_space(s(&ev, "space")); self.save(); self.sync(); }
@@ -338,7 +338,7 @@ impl MessageLogger {
 fn now_ms() -> i64 { std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64) }
 
 impl Plugin for MessageLogger {
-    const NAME: &'static str = "Nachrichtenprotokoll";
+    const NAME: &'static str = "Message Logger";
     const AUTHOR: &'static str = "Webox examples";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
@@ -346,7 +346,7 @@ impl Plugin for MessageLogger {
 
     fn start(&mut self, host: Host) {
         if !["message.deleted", "message.edited", "message.keep"].iter().all(|n| host.has(n)) {
-            host.toast("Diese Webox-Version meldet Plugins keine gelöschten oder bearbeiteten Nachrichten (message.deleted, message.edited oder message.keep fehlt). Bitte Webox aktualisieren.");
+            host.toast("This Webox version does not tell plugins about deleted or edited messages (message.deleted, message.edited or message.keep is missing). Please update Webox.");
         }
         self.host = Some(host);
         // From the last run, if it was to be kept (merged with what this run already logged, if it was switched off and on).
@@ -363,27 +363,27 @@ impl Plugin for MessageLogger {
 
     fn settings(&self) -> Option<Schema> {
         Some(Schema::new()
-            .section("Gelöschte Nachrichten", "Gelöschte Nachrichten bleiben sichtbar und werden als gelöscht markiert. Webox merkt Änderungen beim Laden eines Bereichs. \
-                Alles bleibt nur auf diesem Computer und wird nie gesendet.")
-            .choice("deleteStyle", "Darstellung gelöschter Nachrichten", "", "text", &[("text", "Roter Text"), ("overlay", "Rote Überlagerung")])
-            .toggle("logDeletes", "Gelöschte Nachrichten protokollieren", "", true)
-            .toggle("collapseDeleted", "Gelöschte Nachrichten einklappen", "Wie blockierte Nachrichten: „N gelöschte Nachrichten“, ein Klick klappt sie auf.", false)
-            .toggle("logDeletedAttachments", "Anhänge gelöschter Nachrichten behalten", "Bilder, Dateien und Linkvorschauen bleiben (grau, farbig unter dem Mauszeiger).", true)
-            .section("Bearbeitete Nachrichten", "")
-            .toggle("logEdits", "Bearbeitungen protokollieren", "", true)
-            .toggle("inlineEdits", "Bearbeitungsverlauf in der Nachricht anzeigen", "Aus: nur „(bearbeitet)“; ein Klick darauf zeigt den Verlauf.", true)
-            .toggle("showEditDiffs", "Änderungen farbig anzeigen", "Hinzugefügtes grün, Entferntes rot.", false)
-            .toggle("separatedDiffs", "Hinzufügungen und Entfernungen getrennt anzeigen", "Nur mit „Änderungen farbig anzeigen“: die erste Fassung mit dem Entfernten, der aktuelle Text mit dem Hinzugefügten.", false)
-            .section("Ignorieren", "Listen: ein Eintrag pro Zeile oder durch Kommas getrennt, Groß- und Kleinschreibung egal.")
-            .toggle("ignoreBots", "Bots ignorieren", "Nachrichten von Webex-Bots (Adressen auf @webex.bot).", true)
-            .toggle("ignoreSelf", "Eigene Nachrichten ignorieren", "", false)
-            .toggle("ignoreSelfEdits", "Eigene Bearbeitungen ignorieren", "Ohne Wirkung, solange „Eigene Nachrichten ignorieren“ an ist.", false)
-            .multiline("ignoreUsers", "Ignorierte Personen", "Namen oder E-Mail-Adressen.", "")
-            .multiline("ignoreChannels", "Ignorierte Bereiche", "Bereichsnamen, wie sie in Webox stehen, oder Bereichs-IDs.", "")
-            .multiline("ignoreGuilds", "Ignorierte Teams", "Teamnamen oder Team-IDs: alle Bereiche dieser Teams.", "")
-            .section("Speicherung", "Das Protokoll wird nur auf diesem Computer gespeichert und nie gesendet. Ohne die folgende Option liegt es nur im Arbeitsspeicher.")
-            .toggle("persist", "Protokoll auch nach Neustart behalten", "Speichert das Protokoll in den Plugin-Daten von Webox auf diesem Computer.", false)
-            .button("clear", "Protokoll leeren", "Vergisst alle gelöschten Nachrichten und früheren Fassungen."))
+            .section("Deleted messages", "Deleted messages stay visible, marked as deleted. Webox notices changes when it loads a space. \
+                Everything stays on this computer and is never sent.")
+            .choice("deleteStyle", "Delete style", "How deleted messages are marked.", "text", &[("text", "Red text"), ("overlay", "Red overlay")])
+            .toggle("logDeletes", "Log deleted messages", "", true)
+            .toggle("collapseDeleted", "Collapse deleted messages", "Like blocked messages: \"N deleted messages\", a click expands them.", false)
+            .toggle("logDeletedAttachments", "Log deleted attachments", "Pictures, files and link previews of deleted messages stay (grey, in colour under the mouse pointer).", true)
+            .section("Edited messages", "")
+            .toggle("logEdits", "Log edits", "", true)
+            .toggle("inlineEdits", "Show edits inline", "Off: only \"(edited)\"; a click on it shows the edit history.", true)
+            .toggle("showEditDiffs", "Show edit diffs", "Added text in green, removed text in red.", false)
+            .toggle("separatedDiffs", "Show separated diffs", "Only with \"Show edit diffs\": the first version with what was removed, the current text with what was added.", false)
+            .section("Ignore", "Lists: one entry per line or separated by commas, not case-sensitive.")
+            .toggle("ignoreBots", "Ignore bots", "Messages from Webex bots (addresses ending in @webex.bot).", true)
+            .toggle("ignoreSelf", "Ignore your own messages", "", false)
+            .toggle("ignoreSelfEdits", "Ignore your own edits", "Has no effect while \"Ignore your own messages\" is on.", false)
+            .multiline("ignoreUsers", "Ignored people", "Names or e-mail addresses.", "")
+            .multiline("ignoreChannels", "Ignored spaces", "Space names as Webox shows them, or space ids.", "")
+            .multiline("ignoreGuilds", "Ignored teams", "Team names or team ids: all spaces of these teams.", "")
+            .section("Storage", "The log is stored only on this computer and never sent. Without the option below it is kept in memory only.")
+            .toggle("persist", "Keep the log after a restart", "Stores the log in Webox's plugin data on this computer.", false)
+            .button("clear", "Clear Message Log", "Forgets all deleted messages and earlier versions."))
     }
     fn settings_changed(&mut self, v: &Values) {
         self.cfg = Cfg::from(v);
@@ -396,7 +396,7 @@ impl Plugin for MessageLogger {
         self.session = Session::default();
         self.save();
         self.sync();
-        Some("Protokoll geleert.".into())
+        Some("Message log cleared.".into())
     }
 
     fn on_event(&mut self, name: &str, payload: &str) -> Option<String> { self.answer(name, payload) }

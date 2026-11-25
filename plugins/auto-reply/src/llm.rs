@@ -141,8 +141,8 @@ impl Llm {
             Provider::Cursor => (a(&["-p", "--output-format", "json"]), String::new()),
             Provider::Custom => {
                 let url = self.endpoint.trim().trim_end_matches('/');
-                if !url.starts_with("http://") && !url.starts_with("https://") { return Err("Endpunkt-URL fehlt".into()); }
-                if model.is_empty() { return Err("Modellname fehlt".into()); }
+                if !url.starts_with("http://") && !url.starts_with("https://") { return Err("endpoint URL missing".into()); }
+                if model.is_empty() { return Err("model name missing".into()); }
                 let url = if url.ends_with("/chat/completions") { url.to_string() } else { format!("{url}/chat/completions") };
                 let body = json!({ "model": model, "messages": [
                     { "role": "system", "content": SYSTEM }, { "role": "user", "content": prompt } ] });
@@ -165,7 +165,7 @@ impl Llm {
 
     /// The reply in a finished run's output (`ok` = exit status 0): Ok(None) = the model chose not to reply.
     pub fn parse(&self, ok: bool, out: &str, err: &str) -> Result<Option<String>, String> {
-        let fail = |m: &str| { let m = m.trim(); Err(if m.is_empty() { "kein Ergebnis".to_string() } else { m.chars().take(300).collect() }) };
+        let fail = |m: &str| { let m = m.trim(); Err(if m.is_empty() { "no result".to_string() } else { m.chars().take(300).collect() }) };
         match self.provider {
             Provider::Claude | Provider::Cursor => {
                 let v: Value = serde_json::from_str(out.trim()).unwrap_or_default();
@@ -190,7 +190,7 @@ impl Llm {
                     let text = content_text(&choice["message"]["content"]);
                     if strip_think(&text).trim().is_empty() {
                         let why = choice["finish_reason"].as_str().unwrap_or("?");
-                        return Err(format!("leere Antwort des Modells (finish_reason: {why})"));
+                        return Err(format!("empty answer from the model (finish_reason: {why})"));
                     }
                     return Ok(clean(&text));
                 }
@@ -220,7 +220,7 @@ pub fn run(inv: &Invocation, cancel: &AtomicBool) -> Result<(bool, String, Strin
     cmd.args(&inv.args).current_dir(std::env::temp_dir()).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
     #[cfg(windows)]
     { use std::os::windows::process::CommandExt; cmd.creation_flags(0x0800_0000); } // CREATE_NO_WINDOW: no console flashing up
-    let mut child = cmd.spawn().map_err(|e| format!("{} lässt sich nicht starten: {e}", inv.program))?;
+    let mut child = cmd.spawn().map_err(|e| format!("{} cannot be started: {e}", inv.program))?;
     let (stdin, mut so, mut se) = (child.stdin.take(), child.stdout.take().unwrap(), child.stderr.take().unwrap());
     std::thread::scope(|s| {
         s.spawn(move || if let Some(mut i) = stdin { let _ = i.write_all(inv.stdin.as_bytes()); });
@@ -230,8 +230,8 @@ pub fn run(inv: &Invocation, cancel: &AtomicBool) -> Result<(bool, String, Strin
         let status = loop {
             match child.try_wait() {
                 Ok(Some(st)) => break Ok(st.success()),
-                Ok(None) if cancel.load(Ordering::Relaxed) => break Err("abgebrochen".to_string()),
-                Ok(None) if t0.elapsed() > TIMEOUT => break Err(format!("keine Antwort nach {} s", TIMEOUT.as_secs())),
+                Ok(None) if cancel.load(Ordering::Relaxed) => break Err("cancelled".to_string()),
+                Ok(None) if t0.elapsed() > TIMEOUT => break Err(format!("no answer after {} s", TIMEOUT.as_secs())),
                 Ok(None) => std::thread::sleep(Duration::from_millis(50)),
                 Err(e) => break Err(e.to_string()),
             }

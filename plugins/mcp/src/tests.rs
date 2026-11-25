@@ -10,18 +10,18 @@ impl Api for Mock {
     fn call(&self, method: &str, args: Value) -> Value {
         self.calls.lock().unwrap().push((method.into(), args.clone()));
         let spaces = json!([
-            { "id": "s1", "title": "Projekt Alpha", "direct": false, "unread": true, "last": "17:05", "writable": true },
-            { "id": "s2", "title": "Anna Berg", "direct": true, "unread": false, "last": "Mo", "writable": true },
-            { "id": "s3", "title": "Ankündigungen", "direct": false, "unread": false, "last": "Mo", "writable": false }]);
+            { "id": "s1", "title": "Project Alpha", "direct": false, "unread": true, "last": "17:05", "writable": true },
+            { "id": "s2", "title": "Anna Berg", "direct": true, "unread": false, "last": "Mon", "writable": true },
+            { "id": "s3", "title": "Announcements", "direct": false, "unread": false, "last": "Mon", "writable": false }]);
         match method {
             "spaces.list" => {
                 let q = args["query"].as_str().unwrap_or("").to_lowercase();
                 json!({ "spaces": spaces.as_array().unwrap().iter().filter(|s| s["title"].as_str().unwrap().to_lowercase().contains(&q)).collect::<Vec<_>>() })
             }
-            "space.history" => json!({ "messages": if args["space"] == "s1" { json!([{ "id": "m1", "author": "Anna", "mine": false, "text": "Geheimer Plan", "date": "2026-11-24", "time": "09:00" }]) } else { json!([]) } }),
+            "space.history" => json!({ "messages": if args["space"] == "s1" { json!([{ "id": "m1", "author": "Anna", "mine": false, "text": "Secret plan", "date": "2026-11-24", "time": "09:00" }]) } else { json!([]) } }),
             "messages.search" => json!({ "messages": [{ "id": "m1", "space": "s1", "text": "Plan A" }, { "id": "m2", "space": "s2", "text": "Plan B" }] }),
             "people.search" => json!({ "people": [{ "id": "anna", "name": "Anna Berg", "email": "anna@example.com", "status": "active" }] }),
-            "ui.confirm" => match self.confirm { Some(ok) => json!({ "ok": ok }), None => json!({ "error": "nein" }) },
+            "ui.confirm" => match self.confirm { Some(ok) => json!({ "ok": ok }), None => json!({ "error": "no" }) },
             "space.send" => json!({}),
             _ => json!({ "error": "unbekannt" }),
         }
@@ -74,7 +74,7 @@ fn send_message_is_listed_and_callable_only_when_allowed() {
     assert_eq!(names(&Policy::default()), ["list_spaces", "read_messages", "search_messages", "search_people"]);
     assert_eq!(names(&send_on()).last().unwrap(), "send_message");
     for t in tools(&send_on()) { assert_eq!(t["inputSchema"]["type"], "object"); assert_eq!(t["annotations"]["readOnlyHint"], t["name"] != "send_message"); }
-    let call = req(7, "tools/call", json!({ "name": "send_message", "arguments": { "space": "s1", "text": "Hallo" } }));
+    let call = req(7, "tools/call", json!({ "name": "send_message", "arguments": { "space": "s1", "text": "Hello" } }));
     let r = handle(&m, &Policy::default(), "c", &call).unwrap();
     assert_eq!(r["error"]["code"], -32602);
     assert!(m.methods().is_empty(), "off: neither asked nor sent");
@@ -93,12 +93,12 @@ fn reading_tools_respect_the_space_allowlist() {
     let all = Policy::default();
     assert_eq!(text(&tool_call(&m, &all, "list_spaces", json!({})))["spaces"].as_array().unwrap().len(), 3);
     assert_eq!(text(&tool_call(&m, &all, "list_spaces", json!({ "limit": 1 })))["spaces"].as_array().unwrap().len(), 1);
-    let only = Policy { send: false, allow: vec!["projekt alpha".into()] };
+    let only = Policy { send: false, allow: vec!["project alpha".into()] };
     let l = text(&tool_call(&m, &only, "list_spaces", json!({})));
     assert_eq!(l["spaces"].as_array().unwrap().iter().map(|s| s["id"].clone()).collect::<Vec<_>>(), [json!("s1")]);
     // By title (any case) or id.
-    let r = text(&tool_call(&m, &only, "read_messages", json!({ "space": "PROJEKT ALPHA", "limit": 5 })));
-    assert_eq!((r["space"]["id"].as_str(), r["messages"][0]["text"].as_str()), (Some("s1"), Some("Geheimer Plan")));
+    let r = text(&tool_call(&m, &only, "read_messages", json!({ "space": "PROJECT ALPHA", "limit": 5 })));
+    assert_eq!((r["space"]["id"].as_str(), r["messages"][0]["text"].as_str()), (Some("s1"), Some("Secret plan")));
     assert_eq!(m.calls.lock().unwrap().last().unwrap().1, json!({ "space": "s1", "limit": 5 }));
     // A space outside the list does not exist for the AI.
     let r = tool_call(&m, &only, "read_messages", json!({ "space": "s2" }));
@@ -118,10 +118,10 @@ fn reading_tools_respect_the_space_allowlist() {
 fn every_call_is_logged_without_message_text() {
     let m = Mock { confirm: Some(true), ..Default::default() };
     tool_call(&m, &Policy::default(), "read_messages", json!({ "space": "s1" }));
-    tool_call(&m, &send_on(), "send_message", json!({ "space": "s2", "text": "Streng vertraulich" }));
-    tool_call(&m, &Policy::default(), "read_messages", json!({ "space": "gibt es nicht" }));
-    assert_eq!(m.logs(), ["Claude Code: read_messages (Projekt Alpha) -> ok", "Claude Code: send_message (Anna Berg) -> ok", "Claude Code: read_messages -> Fehler"]);
-    assert!(!m.logs().iter().any(|l| l.contains("Geheimer") || l.contains("vertraulich") || l.contains("gibt es nicht")));
+    tool_call(&m, &send_on(), "send_message", json!({ "space": "s2", "text": "Strictly confidential" }));
+    tool_call(&m, &Policy::default(), "read_messages", json!({ "space": "does not exist" }));
+    assert_eq!(m.logs(), ["Claude Code: read_messages (Project Alpha) -> ok", "Claude Code: send_message (Anna Berg) -> ok", "Claude Code: read_messages -> error"]);
+    assert!(!m.logs().iter().any(|l| l.contains("Secret") || l.contains("confidential") || l.contains("does not exist")));
 }
 
 #[test]
@@ -132,18 +132,18 @@ fn sending_needs_a_confirmation_and_a_writable_space() {
     assert_eq!(r["isError"], true);
     assert!(r["content"][0]["text"].as_str().unwrap().contains("declined"));
     assert!(!m.methods().contains(&"space.send".to_string()));
-    assert_eq!(m.logs(), ["Claude Code: send_message (Anna Berg) -> abgelehnt"]);
+    assert_eq!(m.logs(), ["Claude Code: send_message (Anna Berg) -> declined"]);
     // The dialog names the client, the space and the text.
     let ask = m.calls.lock().unwrap().iter().find(|c| c.0 == "ui.confirm").unwrap().1.clone();
-    assert_eq!(ask["text"], "Claude Code möchte an „Anna Berg“ senden:\n\nHi");
-    assert_eq!((ask["ok"].as_str(), ask["cancel"].as_str()), (Some("Senden"), Some("Ablehnen")));
+    assert_eq!(ask["text"], "Claude Code wants to send to \"Anna Berg\":\n\nHi");
+    assert_eq!((ask["ok"].as_str(), ask["cancel"].as_str()), (Some("Send"), Some("Decline")));
     // No dialog possible (old host, error): not sent.
     let m = Mock::default();
     assert_eq!(tool_call(&m, &send_on(), "send_message", json!({ "space": "s1", "text": "Hi" }))["isError"], true);
     assert!(!m.methods().contains(&"space.send".to_string()));
     // Read-only space and empty text: not even asked.
     let m = Mock { confirm: Some(true), ..Default::default() };
-    assert_eq!(tool_call(&m, &send_on(), "send_message", json!({ "space": "Ankündigungen", "text": "Hi" }))["isError"], true);
+    assert_eq!(tool_call(&m, &send_on(), "send_message", json!({ "space": "Announcements", "text": "Hi" }))["isError"], true);
     assert_eq!(tool_call(&m, &send_on(), "send_message", json!({ "space": "s1", "text": "  " }))["isError"], true);
     assert!(!m.methods().contains(&"ui.confirm".to_string()));
     // Confirmed: sent to that space.
@@ -191,10 +191,10 @@ fn requests_without_token_or_from_foreign_pages_are_refused_before_any_tool_runs
     assert_eq!(run(&m, &st, &http("POST", &[("Origin", "https://evil.example")], list)).status, 403);
     assert_eq!(run(&m, &st, &http("POST", &[("Host", "evil.example:39847")], list)).status, 403);
     assert!(m.methods().is_empty(), "no tool ran");
-    assert_eq!(m.logs(), ["abgewiesen: Anfrage ohne gültiges Token", "abgewiesen: Anfrage ohne gültiges Token",
-        "abgewiesen: fremder Host oder fremde Herkunft (Origin)", "abgewiesen: fremder Host oder fremde Herkunft (Origin)"]);
+    assert_eq!(m.logs(), ["rejected: request without a valid token", "rejected: request without a valid token",
+        "rejected: foreign host or origin", "rejected: foreign host or origin"]);
     // The token changes in the settings: the old one stops working at once.
-    st.lock().unwrap().token = "neu".into();
+    st.lock().unwrap().token = "new".into();
     assert_eq!(run(&m, &st, &http("POST", &[], list)).status, 401);
 }
 
@@ -211,10 +211,10 @@ fn http_routing_sessions_and_client_names() {
     // The session's client name goes into the log.
     let call = r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"read_messages","arguments":{"space":"s1"}}}"#;
     assert_eq!(run(&m, &st, &http("POST", &[("Mcp-Session-Id", "sid-1"), ("MCP-Protocol-Version", "2025-06-18")], call)).status, 200);
-    assert_eq!(m.logs().last().unwrap(), "LM Studio: read_messages (Projekt Alpha) -> ok");
+    assert_eq!(m.logs().last().unwrap(), "LM Studio: read_messages (Project Alpha) -> ok");
     // Without a session (lenient) / with an unknown one (the client must initialize again).
     run(&m, &st, &http("POST", &[], call));
-    assert_eq!(m.logs().last().unwrap(), "MCP-Client: read_messages (Projekt Alpha) -> ok");
+    assert_eq!(m.logs().last().unwrap(), "MCP client: read_messages (Project Alpha) -> ok");
     assert_eq!(run(&m, &st, &http("POST", &[("Mcp-Session-Id", "alt")], call)).status, 404);
     // A batch answers as an array.
     let r = run(&m, &st, &http("POST", &[], r#"[{"jsonrpc":"2.0","id":1,"method":"ping"},{"jsonrpc":"2.0","method":"notifications/x"},{"jsonrpc":"2.0","id":2,"method":"ping"}]"#));
@@ -269,9 +269,9 @@ fn server_answers_on_loopback_and_stops() {
 
 #[test]
 fn settings_and_the_connection_snippet() {
-    let v = Values::parse(r#"{"active":true,"port":40000,"token":" abc ","send":false,"spaces":"Projekt Alpha\n\n  s2 \n"}"#);
+    let v = Values::parse(r#"{"active":true,"port":40000,"token":" abc ","send":false,"spaces":"Project Alpha\n\n  s2 \n"}"#);
     let c = Cfg::from(&v);
-    assert_eq!(c, Cfg { active: true, port: 40000, token: "abc".into(), policy: Policy { send: false, allow: vec!["projekt alpha".into(), "s2".into()] } });
+    assert_eq!(c, Cfg { active: true, port: 40000, token: "abc".into(), policy: Policy { send: false, allow: vec!["project alpha".into(), "s2".into()] } });
     assert_eq!(Cfg::from(&Values::parse("{}")), Cfg::default());
     assert_eq!(Cfg::default().port, DEFAULT_PORT);
     let s = snippet(&c);
@@ -283,7 +283,7 @@ fn settings_and_the_connection_snippet() {
     let fields: Vec<Value> = schema["sections"].as_array().unwrap().iter().flat_map(|s| s["fields"].as_array().unwrap().clone()).collect();
     let f = |id: &str| fields.iter().find(|f| f["id"] == id).unwrap().clone();
     assert_eq!((f("active")["default"].clone(), f("send")["default"].clone()), (json!(false), json!(false)));
-    assert_eq!((f("active")["label"].as_str(), f("send")["label"].as_str()), (Some("MCP-Server aktiv"), Some("KI darf Nachrichten senden")));
+    assert_eq!((f("active")["label"].as_str(), f("send")["label"].as_str()), (Some("MCP server on"), Some("Allow the AI to send messages")));
     assert_eq!(f("token")["type"], "password");
     for b in ["show_token", "new_token", "copy", "calls"] { assert_eq!(f(b)["type"], "button"); }
 }
@@ -301,6 +301,6 @@ fn a_switched_off_plugin_listens_nowhere() {
     let mut p = WebexMcp::default();
     p.settings_changed(&Values::parse(r#"{"active":true,"port":0,"token":"abc"}"#));
     assert!(p.server.is_none());
-    assert_eq!(p.settings_action("copy").as_deref(), Some("Bitte das Plugin zuerst einschalten."));
-    assert_eq!(p.settings_action("calls").as_deref(), Some("Noch keine Aufrufe."));
+    assert_eq!(p.settings_action("copy").as_deref(), Some("Please turn the plugin on first."));
+    assert_eq!(p.settings_action("calls").as_deref(), Some("No calls yet."));
 }

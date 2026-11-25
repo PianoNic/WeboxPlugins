@@ -64,11 +64,11 @@ mod tests {
         assert_eq!(show(&diff("this", "watch this")), "[+watch ]this");
         assert_eq!(show(&diff("watch this", "watch")), "watch[- this]");
         assert_eq!(show(&diff("prefix watch", "watch")), "[-prefix ]watch");
-        assert_eq!(show(&diff("", "neu")), "[+neu]");
+        assert_eq!(show(&diff("", "new")), "[+new]");
         assert_eq!(show(&diff("gleich", "gleich")), "gleich");
-        assert_eq!(show(&diff("Hallo Welt", "Hallo Leute")), "Hallo [-W][+L]e[-l][+u]t[+e]");
+        assert_eq!(show(&diff("Hello world", "Hello folks")), "Hello [-w][+f]o[-r]l[-d][+ks]");
         // Emoji and umlauts are single characters, never split.
-        assert_eq!(show(&diff("Grüße 👋", "Grüße 🙂")), "Grüße [-👋][+🙂]");
+        assert_eq!(show(&diff("Café 👋", "Café 🙂")), "Café [-👋][+🙂]");
     }
 
     #[test]
