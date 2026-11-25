@@ -91,6 +91,17 @@ fn settings_action(&mut self, id: &str) -> Option<String> { (id == "reset_count"
 - `host.settings()` returns the current values at any time.
 - Settings need contract 1.2, accent themes 1.3, decorations 1.4.
 
+### Translations
+
+Write every text in English; Webox shows it as is unless the plugin ships a translation. To ship one, copy `src/i18n.rs`
+and `translations/de.tsv` from any plugin here, add `mod i18n;`, list `i18n.strings` in `EVENTS` and answer it in
+`on_event` with `i18n::strings(payload)`. Each `translations/<lang>.tsv` line is `English<TAB>translation` (`\n` for a
+line break); add a language by adding its file to `TABLES` in `i18n.rs`. Webox translates the name, the settings page,
+menu entries, dialogs and toasts itself; wrap texts the plugin builds at run time (formatted toasts, the result of a
+settings button, log lines) in `i18n::t(...)` and fill `{placeholders}` after translating. The `i18n_tests` test fails
+when a settings text has no German line. Webox without translation support never sends the event, so the plugin stays
+English there (Webox `docs/plugins.md`, "Translations").
+
 ### Decorations (themes)
 
 A theme can also return `decor(theme) -> Option<Decor>`. It declares background washes (gradient stops, angle, opacity and

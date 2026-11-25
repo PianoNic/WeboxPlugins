@@ -7,11 +7,13 @@
 //!
 //! Threads: the server's accept thread and its connection threads (server.rs). Settings changes restart the server on the UI
 //! thread; connection threads from before are joined at the latest in `stop`, which leaves no thread running.
+mod i18n;
 mod mcp;
 mod rand;
 mod server;
 
 use collabhost_plugin_api::{export_plugin, Host, Plugin, Schema, Values};
+use i18n::t;
 use mcp::{Api, Policy};
 use serde_json::{json, Value};
 use std::collections::VecDeque;
@@ -97,21 +99,21 @@ impl WebexMcp {
         let Some(host) = self.host else { return };
         let want = self.cfg.active && !self.cfg.token.is_empty();
         if want && self.server.as_ref().is_some_and(|s| s.port == self.cfg.port) { return; }
-        if let Some(s) = self.server.take() { self.leftover.extend(s.stop()); host.log("MCP server stopped"); }
+        if let Some(s) = self.server.take() { self.leftover.extend(s.stop()); host.log(&t("MCP server stopped")); }
         if !want { return; }
         let api: Arc<dyn Api> = Arc::new(Webox { host, recent: self.recent.clone() });
         match server::start(self.cfg.port, api, self.state.clone(), new_session_id) {
-            Ok(s) => { host.log(&format!("MCP server running: {}", self.cfg.url())); self.server = Some(s); }
-            Err(e) => { let t = format!("MCP server could not open port {}: {e}", self.cfg.port); host.log(&t); host.toast(&t); }
+            Ok(s) => { host.log(&t("MCP server running: {url}").replace("{url}", &self.cfg.url())); self.server = Some(s); }
+            Err(e) => { let m = t("MCP server could not open port {port}: {e}").replace("{port}", &self.cfg.port.to_string()).replace("{e}", &e.to_string()); host.log(&m); host.toast(&m); }
         }
     }
 
     /// Makes a new token and saves it as the password setting (keyring); in effect at once, saved on the next frame.
     fn new_token(&mut self) -> Result<(), String> {
-        let host = self.host.ok_or("Please turn the plugin on first.")?;
-        let t = rand::hex(32).ok_or("The system returned no random numbers.")?;
-        host.call("settings.set", &json!({ "id": "token", "value": t }).to_string());
-        self.cfg.token = t;
+        let host = self.host.ok_or_else(|| t("Please turn the plugin on first."))?;
+        let token = rand::hex(32).ok_or_else(|| t("The system returned no random numbers."))?;
+        host.call("settings.set", &json!({ "id": "token", "value": token }).to_string());
+        self.cfg.token = token;
         self.apply();
         Ok(())
     }
@@ -124,13 +126,13 @@ impl Plugin for WebexMcp {
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
     // Subscribing is what makes Webox keep the copy of spaces, people and messages that the read methods use; the event itself
     // is ignored.
-    const EVENTS: &'static str = "message.received";
+    const EVENTS: &'static str = "message.received i18n.strings";
 
     fn start(&mut self, host: Host) {
         self.host = Some(host);
         let missing: Vec<&str> = NEEDS.iter().copied().filter(|n| !host.has(n)).collect();
         if !missing.is_empty() {
-            host.toast(&format!("This Webox version cannot run the MCP server (missing: {}). Please update Webox.", missing.join(", ")));
+            host.toast(&t("This Webox version cannot run the MCP server (missing: {missing}). Please update Webox.").replace("{missing}", &missing.join(", ")));
             return;
         }
         if self.cfg.token.is_empty() {
@@ -169,25 +171,35 @@ impl Plugin for WebexMcp {
     }
     fn settings_action(&mut self, id: &str) -> Option<String> {
         Some(match id {
-            "show_token" if self.cfg.token.is_empty() => "No token yet: please turn the plugin on.".into(),
+            "show_token" if self.cfg.token.is_empty() => t("No token yet: please turn the plugin on."),
             "show_token" => format!("Token: {}", self.cfg.token),
-            "new_token" => match self.new_token() { Ok(()) => "New token generated. Connected clients need the new token.".into(), Err(e) => e },
+            "new_token" => match self.new_token() { Ok(()) => t("New token generated. Connected clients need the new token."), Err(e) => e },
             "copy" => {
-                let Some(host) = self.host.filter(|_| !self.cfg.token.is_empty()) else { return Some("Please turn the plugin on first.".into()) };
+                let Some(host) = self.host.filter(|_| !self.cfg.token.is_empty()) else { return Some(t("Please turn the plugin on first.")) };
                 host.call("clipboard.write", &json!({ "text": snippet(&self.cfg) }).to_string());
-                format!("Connection copied ({}){}", self.cfg.url(), if self.cfg.active { "" } else { ". Note: \"MCP server on\" is off." })
+                t("Connection copied ({url})").replace("{url}", &self.cfg.url()) + &if self.cfg.active { String::new() } else { t(". Note: \"MCP server on\" is off.") }
             }
             "calls" => {
                 let r = self.recent.lock().unwrap_or_else(|e| e.into_inner());
-                if r.is_empty() { "No calls yet.".into() } else { r.iter().rev().take(8).cloned().collect::<Vec<_>>().join("\n") }
+                if r.is_empty() { t("No calls yet.") } else { r.iter().rev().take(8).cloned().collect::<Vec<_>>().join("\n") }
             }
             _ => return None,
         })
     }
-    fn on_event(&mut self, _: &str, _: &str) -> Option<String> { None }
+    fn on_event(&mut self, name: &str, payload: &str) -> Option<String> { (name == "i18n.strings").then(|| i18n::strings(payload)) }
 }
 
 export_plugin!(WebexMcp);
+
+#[cfg(test)]
+mod i18n_tests {
+    use super::*;
+    #[test]
+    fn every_setting_has_a_german_text() {
+        let s = WebexMcp::default().settings().unwrap().to_json();
+        assert_eq!(i18n::untranslated(&s, &[]), Vec::<String>::new());
+    }
+}
 
 #[cfg(test)]
 mod tests;

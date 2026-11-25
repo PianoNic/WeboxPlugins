@@ -1,6 +1,7 @@
 //! The MCP side: JSON-RPC 2.0 messages (`initialize`, `ping`, `tools/list`, `tools/call`, notifications) and the tools, which
 //! read Webex through Webox's host methods (`spaces.list`, `space.history`, `messages.search`, `people.search`; `ui.confirm`
 //! and `space.send` for `send_message`). No transport here: `server.rs` hands in parsed JSON and the client's name.
+use crate::i18n::t;
 use serde_json::{json, Value};
 
 /// Protocol versions this server speaks, newest first. An unknown requested version gets the newest.
@@ -122,7 +123,7 @@ fn num(a: &Value, k: &str, def: u64, max: u64) -> u64 { a[k].as_u64().unwrap_or(
 pub fn call_tool(api: &dyn Api, p: &Policy, client: &str, name: &str, a: &Value) -> Value {
     let mut space_title = String::new();
     let res = run(api, p, client, name, a, &mut space_title);
-    let outcome = match &res { Ok(_) => "ok".to_string(), Err(e) if e == REFUSED => "declined".into(), Err(_) => "error".into() };
+    let outcome = match &res { Ok(_) => "ok".to_string(), Err(e) if e == REFUSED => t("declined"), Err(_) => t("error") };
     let at = if space_title.is_empty() { String::new() } else { format!(" ({space_title})") };
     api.log(&format!("{client}: {name}{at} -> {outcome}"));
     match res { Ok(v) => result(v), Err(e) => failure(&e) }
@@ -173,8 +174,9 @@ fn run(api: &dyn Api, p: &Policy, client: &str, name: &str, a: &Value, space_tit
             let sp = found(arg(a, "space"))?;
             if sp["writable"] == false { return Err("This space is read-only for the user.".into()); }
             let title = sp["title"].as_str().unwrap_or("");
-            let ask = api.call("ui.confirm", json!({ "title": "Send message?", "text": format!("{client} wants to send to \"{title}\":\n\n{text}"),
-                "ok": "Send", "cancel": "Decline", "timeout": 120 }));
+            let ask = api.call("ui.confirm", json!({ "title": t("Send message?"),
+                "text": t("{client} wants to send to \"{title}\":\n\n{text}").replace("{client}", client).replace("{title}", title).replace("{text}", text),
+                "ok": t("Send"), "cancel": t("Decline"), "timeout": 120 }));
             if let Some(e) = ask["error"].as_str() { return Err(e.to_string()); }
             if ask["ok"] != true { return Err(REFUSED.into()); }
             let r = api.call("space.send", json!({ "space": sp["id"], "text": text }));

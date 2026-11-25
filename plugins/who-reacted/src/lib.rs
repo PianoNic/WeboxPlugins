@@ -1,6 +1,8 @@
 //! Who Reacted: small round avatars of the people who reacted, right after each reaction chip's count, up to a limit
 //! and then "+N", with the name on hover (like Equicord's WhoReacted). Webox draws them; the plugin turns them on and
 //! configures them through the host method `reactions.show_avatars`, in `start` and on every settings change.
+mod i18n;
+
 use collabhost_plugin_api::{export_plugin, Host, Plugin, Schema, Values};
 
 /// The host method this plugin drives.
@@ -56,6 +58,8 @@ impl Plugin for WhoReacted {
     const AUTHOR: &'static str = "Webox examples";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
+    const EVENTS: &'static str = "i18n.strings";
+    fn on_event(&mut self, name: &str, payload: &str) -> Option<String> { (name == "i18n.strings").then(|| i18n::strings(payload)) }
 
     fn start(&mut self, host: Host) {
         if !host.has(METHOD) {
@@ -82,6 +86,16 @@ impl Plugin for WhoReacted {
 }
 
 export_plugin!(WhoReacted);
+
+#[cfg(test)]
+mod i18n_tests {
+    use super::*;
+    #[test]
+    fn every_setting_has_a_german_text() {
+        let s = WhoReacted::default().settings().unwrap().to_json();
+        assert_eq!(i18n::untranslated(&s, &[WhoReacted::NAME]), Vec::<String>::new());
+    }
+}
 
 #[cfg(test)]
 mod tests;

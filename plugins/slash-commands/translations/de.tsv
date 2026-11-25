@@ -1,0 +1,10 @@
+Replacements	Ersetzungen
+What is replaced when a message is sent.	Was beim Senden einer Nachricht ersetzt wird.
+Replace ":)" with 🙂	„:)“ durch 🙂 ersetzen
+Applies to every message you send.	Gilt für jede gesendete Nachricht.
+Commands	Befehle
+Text for /shrug	Text für /shrug
+Sent after the text you write after /shrug.	Wird nach dem Text gesendet, den Sie hinter /shrug schreiben.
+Reset the /count counter	Zähler für /count zurücksetzen
+Sets the number of sent messages to 0.	Setzt die Zahl der gesendeten Nachrichten auf 0.
+Counter reset	Zähler zurückgesetzt

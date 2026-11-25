@@ -1,0 +1,50 @@
+Toggle Deleted Highlight	Gelöscht-Markierung umschalten
+Disable Diff View	Änderungsvergleich deaktivieren
+Enable Diff View	Änderungsvergleich aktivieren
+Clear Message History	Nachrichtenverlauf löschen
+Show Diff	Unterschiede anzeigen
+This edit state was not logged so it can't be displayed.	Dieser Bearbeitungsstand wurde nicht protokolliert und kann nicht angezeigt werden.
+Earlier version	Frühere Fassung
+Current version	Aktuelle Fassung
+Message Edit History	Bearbeitungsverlauf
+Clear Message Log	Protokoll leeren
+Message Logger	Nachrichtenprotokoll
+This Webox version does not tell plugins about deleted or edited messages (message.deleted, message.edited or message.keep is missing). Please update Webox.	Diese Webox-Version meldet Plugins keine gelöschten oder bearbeiteten Nachrichten (message.deleted, message.edited oder message.keep fehlt). Bitte Webox aktualisieren.
+Message log cleared.	Protokoll geleert.
+Deleted messages	Gelöschte Nachrichten
+Deleted messages stay visible, marked as deleted. Webox notices changes when it loads a space. Everything stays on this computer and is never sent.	Gelöschte Nachrichten bleiben sichtbar und werden als gelöscht markiert. Webox merkt Änderungen beim Laden eines Bereichs. Alles bleibt nur auf diesem Computer und wird nie gesendet.
+Delete style	Darstellung gelöschter Nachrichten
+How deleted messages are marked.	Wie gelöschte Nachrichten markiert werden.
+Red text	Roter Text
+Red overlay	Rote Überlagerung
+Log deleted messages	Gelöschte Nachrichten protokollieren
+Collapse deleted messages	Gelöschte Nachrichten einklappen
+Like blocked messages: "N deleted messages", a click expands them.	Wie blockierte Nachrichten: „N gelöschte Nachrichten“, ein Klick klappt sie auf.
+Log deleted attachments	Anhänge gelöschter Nachrichten behalten
+Pictures, files and link previews of deleted messages stay (grey, in colour under the mouse pointer).	Bilder, Dateien und Linkvorschauen bleiben (grau, farbig unter dem Mauszeiger).
+Edited messages	Bearbeitete Nachrichten
+Log edits	Bearbeitungen protokollieren
+Show edits inline	Bearbeitungsverlauf in der Nachricht anzeigen
+Off: only "(edited)"; a click on it shows the edit history.	Aus: nur „(bearbeitet)“; ein Klick darauf zeigt den Verlauf.
+Show edit diffs	Änderungen farbig anzeigen
+Added text in green, removed text in red.	Hinzugefügtes grün, Entferntes rot.
+Show separated diffs	Hinzufügungen und Entfernungen getrennt anzeigen
+Only with "Show edit diffs": the first version with what was removed, the current text with what was added.	Nur mit „Änderungen farbig anzeigen“: die erste Fassung mit dem Entfernten, der aktuelle Text mit dem Hinzugefügten.
+Ignore	Ignorieren
+Lists: one entry per line or separated by commas, not case-sensitive.	Listen: ein Eintrag pro Zeile oder durch Kommas getrennt, Groß- und Kleinschreibung egal.
+Ignore bots	Bots ignorieren
+Messages from Webex bots (addresses ending in @webex.bot).	Nachrichten von Webex-Bots (Adressen auf @webex.bot).
+Ignore your own messages	Eigene Nachrichten ignorieren
+Ignore your own edits	Eigene Bearbeitungen ignorieren
+Has no effect while "Ignore your own messages" is on.	Ohne Wirkung, solange „Eigene Nachrichten ignorieren“ an ist.
+Ignored people	Ignorierte Personen
+Names or e-mail addresses.	Namen oder E-Mail-Adressen.
+Ignored spaces	Ignorierte Bereiche
+Space names as Webox shows them, or space ids.	Bereichsnamen, wie sie in Webox stehen, oder Bereichs-IDs.
+Ignored teams	Ignorierte Teams
+Team names or team ids: all spaces of these teams.	Teamnamen oder Team-IDs: alle Bereiche dieser Teams.
+Storage	Speicherung
+The log is stored only on this computer and never sent. Without the option below it is kept in memory only.	Das Protokoll wird nur auf diesem Computer gespeichert und nie gesendet. Ohne die folgende Option liegt es nur im Arbeitsspeicher.
+Stores the log in Webox's plugin data on this computer.	Speichert das Protokoll in den Plugin-Daten von Webox auf diesem Computer.
+Forgets all deleted messages and earlier versions.	Vergisst alle gelöschten Nachrichten und früheren Fassungen.
+Keep the log after a restart	Protokoll auch nach Neustart behalten
