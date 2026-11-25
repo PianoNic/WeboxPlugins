@@ -8,6 +8,7 @@
 //! host). The filter is only registered while an effect is on, so with everything off the plugin costs nothing per frame.
 //! Everything runs on this computer: no picture is sent anywhere but in the call itself.
 mod fx;
+mod i18n;
 mod seg;
 mod text;
 #[cfg(test)]
@@ -122,7 +123,7 @@ impl Pipe {
         // never shows while the model loads
         if m.is_none() && self.smooth.alpha.is_empty() { m = w.wait(Duration::from_millis(12)); }
         if let Some(e) = &w.failed {
-            if !self.failed { self.host.log(&format!("Segmentation: {e}")); self.failed = true; }
+            if !self.failed { self.host.log(&i18n::t("Segmentation: {e}").replace("{e}", e)); self.failed = true; }
             return false;
         }
         match m {
@@ -141,7 +142,7 @@ impl Pipe {
             let r = self.host.call("media.open", &format!("{{\"path\":{},\"width\":{w},\"height\":{h}}}", json_str(path))).unwrap_or_default();
             let v = Values::parse(&r);
             let Some(id) = v.number("id") else {
-                self.host.log(&format!("Background: {}", v.text("error").unwrap_or("cannot be opened")));
+                self.host.log(&i18n::t("Background: {e}").replace("{e}", &v.text("error").map_or_else(|| i18n::t("cannot be opened"), String::from)));
                 // remembered as failed for this path and size: no retry every frame
                 self.clip = Some(Clip { path: path.into(), w, h, id: 0, still: true, px: vec![], read: true });
                 return false;
@@ -187,7 +188,7 @@ impl Video {
         }
         if c.source != self.source {
             let r = h.call("camera.source", &format!("{{\"path\":{}}}", json_str(&c.source))).unwrap_or_default();
-            if let Some(e) = Values::parse(&r).text("error") { h.toast(&format!("Video source: {e}")); }
+            if let Some(e) = Values::parse(&r).text("error") { h.toast(&i18n::t("Video source: {e}").replace("{e}", e)); }
             self.source = c.source.clone();
         }
         if c.any_effect() && self.filter.is_none() {
@@ -205,6 +206,8 @@ impl Plugin for Video {
     const AUTHOR: &'static str = "Webox examples";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &'static str = env!("CARGO_PKG_DESCRIPTION");
+    const EVENTS: &'static str = "i18n.strings";
+    fn on_event(&mut self, name: &str, payload: &str) -> Option<String> { (name == "i18n.strings").then(|| i18n::strings(payload)) }
 
     fn settings(&self) -> Option<Schema> {
         let mut files: Vec<&str> = VIDEO_EXT.to_vec();
@@ -250,6 +253,16 @@ impl Plugin for Video {
 }
 
 export_plugin!(Video);
+
+#[cfg(test)]
+mod i18n_tests {
+    use super::*;
+    #[test]
+    fn every_setting_has_a_german_text() {
+        let s = Video::default().settings().unwrap().to_json();
+        assert_eq!(i18n::untranslated(&s, &[]), Vec::<String>::new());
+    }
+}
 
 #[cfg(test)]
 mod tests {

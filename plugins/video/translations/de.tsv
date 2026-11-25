@@ -1,0 +1,34 @@
+Segmentation: {e}	Segmentierung: {e}
+Background: {e}	Hintergrund: {e}
+cannot be opened	lässt sich nicht öffnen
+This Webox version does not give plugins camera pictures. Please update Webox.	Diese Webox-Version gibt Plugins keine Kamerabilder. Bitte Webox aktualisieren.
+Video source: {e}	Videoquelle: {e}
+Video source	Videoquelle
+What the others see instead of your camera. With a file the camera stays off; a video loops.	Was die anderen statt Ihrer Kamera sehen. Bei einer Datei bleibt die Kamera aus; ein Video läuft in einer Schleife.
+Camera	Kamera
+Video file	Videodatei
+Picture	Bild
+File	Datei
+Video file or picture for "Video file" / "Picture".	Videodatei oder Bild für „Videodatei“ / „Bild“.
+Videos and pictures	Videos und Bilder
+Background	Hintergrund
+Finds you in the picture (locally, without internet) and replaces everything behind you.	Erkennt Sie im Bild (lokal, ohne Internet) und ersetzt alles dahinter.
+Off	Aus
+Blur	Weichzeichnen
+Background file	Hintergrunddatei
+Picture or video for "Picture" / "Video". A video loops.	Bild oder Video für „Bild“ / „Video“. Ein Video läuft in einer Schleife.
+Pictures and videos	Bilder und Videos
+Blur strength	Stärke des Weichzeichners
+Applies to the picture the others see. The preview under Settings > Video shows it.	Wirkt auf das Bild, das die anderen sehen. Die Vorschau unter Einstellungen > Video zeigt es.
+Mirror	Spiegeln
+The others see you mirrored. Webox mirrors your own preview anyway.	Die anderen sehen Sie seitenverkehrt. Ihre eigene Vorschau spiegelt Webox ohnehin.
+Brightness	Helligkeit
+0 = unchanged.	0 = unverändert.
+Contrast	Kontrast
+Soft focus for the face	Weichzeichner fürs Gesicht
+Smooths skin and flat areas, edges stay sharp. 0 = off.	Glättet Haut und Flächen, Kanten bleiben scharf. 0 = aus.
+Low-light boost	Restlicht-Verstärkung
+Brightens a dark picture automatically.	Hellt ein dunkles Bild automatisch auf.
+Show name	Name einblenden
+Shown bottom left. Empty = off.	Wird unten links eingeblendet. Leer = aus.
+Video	Video

@@ -189,6 +189,7 @@ name = "collabhost_pride_theme"
 version = "1.6.1"
 dependencies = [
  "collabhost-plugin-api",
+ "serde_json",
 ]
 
 [[package]]
@@ -196,6 +197,7 @@ name = "collabhost_slash_commands"
 version = "1.6.1"
 dependencies = [
  "collabhost-plugin-api",
+ "serde_json",
 ]
 
 [[package]]
@@ -205,6 +207,7 @@ dependencies = [
  "ab_glyph",
  "collabhost-plugin-api",
  "image",
+ "serde_json",
  "tract-onnx",
 ]
 

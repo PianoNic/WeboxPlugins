@@ -65,13 +65,13 @@ pub fn auth_ok(h: Option<&str>, token: &str) -> bool {
 /// Answers one request (everything but the socket). `new_id` makes a session id for `initialize`.
 pub fn route(api: &dyn Api, st: &Shared, port: u16, req: &Req, new_id: &mut dyn FnMut() -> String) -> Resp {
     if !host_ok(req.header("host"), port) || !origin_ok(req.header("origin")) {
-        api.log("rejected: foreign host or origin");
+        api.log(&crate::i18n::t("rejected: foreign host or origin"));
         return resp(403, "Forbidden");
     }
     if req.path.split('?').next() != Some("/mcp") { return resp(404, "Not Found"); }
     let (policy, token) = { let s = lock(st); (s.policy.clone(), s.token.clone()) };
     if !auth_ok(req.header("authorization"), &token) {
-        api.log("rejected: request without a valid token");
+        api.log(&crate::i18n::t("rejected: request without a valid token"));
         let mut r = resp(401, "Unauthorized");
         r.headers.push(("WWW-Authenticate".into(), "Bearer".into()));
         return r;

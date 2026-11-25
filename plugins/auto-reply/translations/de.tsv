@@ -1,0 +1,65 @@
+switched off	ausgeschaltet
+own message	eigene Nachricht
+empty message	leere Nachricht
+not a 1:1 chat	kein 1:1-Chat
+person not on the list	Person nicht in der Liste
+person excluded	Person ausgeschlossen
+a reply for this chat is already on its way	für diesen Chat läuft schon eine Antwort
+this chat is still in its cooldown	Abklingzeit für diesen Chat läuft noch
+No reply for {author}: Webox returned no history for this chat (space.history is empty).	Keine Antwort für {author}: Webox hat keinen Verlauf dieses Chats geliefert (space.history leer).
+skipped ({author}): you already replied yourself	übersprungen ({author}): schon selbst geantwortet
+Sending failed: {e}	Senden fehlgeschlagen: {e}
+sent to {author}	an {author} gesendet
+suggestion for {author} created	Vorschlag für {author} erstellt
+Suggestion for {author}: {r}	Vorschlag für {author}: {r}
+No reply needed ({author}): the model answered {no_reply}.	Keine Antwort nötig ({author}): das Modell hat {no_reply} geantwortet.
+Provider error: {e}	Anbieter-Fehler: {e}
+Auto Reply	Auto-Antwort
+This Webox version does not tell plugins about incoming messages (message.received, space.history or space.send is missing). Please update Webox.	Diese Webox-Version meldet Plugins keine eingehenden Nachrichten (message.received, space.history oder space.send fehlt). Bitte Webox aktualisieren.
+Answers incoming messages in your own style: a language model reads the conversation and your earlier messages and writes the reply you would write, or none.	Beantwortet eingehende Nachrichten in Ihrem eigenen Stil: Ein Sprachmodell liest den Verlauf und Ihre früheren Nachrichten und schreibt die Antwort, die Sie schreiben würden, oder keine.
+Turn on Auto Reply	Auto-Antwort einschalten
+Mode	Modus
+A suggestion shows as a notification; "Send automatically" sends the reply itself.	Ein Vorschlag erscheint als Hinweis; „Automatisch senden“ schickt die Antwort selbst.
+Suggest in a toast	Vorschlag als Toast
+Send automatically	Automatisch senden
+When to reply	Wann antworten
+Only in 1:1 chats	Nur in 1:1-Chats
+1:1 chats, and groups when I am @-mentioned	1:1-Chats und Gruppen, wenn ich @-erwähnt werde
+People	Personen
+Everyone	Alle
+Only people on the list	Nur Personen aus der Liste
+Everyone except people on the list	Alle außer Personen aus der Liste
+List	Liste
+One display name per line, as Webox shows it.	Ein Anzeigename pro Zeile, wie er in Webox steht.
+Delay (s)	Verzögerung (s)
+How long to wait; if you reply yourself in that time, there is no auto reply.	So lange wird gewartet; antworten Sie in der Zeit selbst, entfällt die Auto-Antwort.
+At most one auto reply per space every (min)	Höchstens eine Auto-Antwort pro Bereich alle (min)
+Prevents endless loops with other bots.	Verhindert Endlosschleifen mit anderen Bots.
+Language model	Sprachmodell
+Local CLIs run without tools and with your login there.	Lokale CLIs laufen ohne Werkzeuge und mit Ihrem dortigen Login.
+Provider	Anbieter
+Custom endpoint (OpenAI-compatible)	Eigener Endpunkt (OpenAI-kompatibel)
+Program path	Programmpfad
+Empty = claude / codex / cursor-agent / curl from the PATH.	Leer = claude / codex / cursor-agent / curl aus dem PATH.
+Model	Modell
+Empty = the CLI's default. Required for a custom endpoint.	Leer = Standard des CLIs. Beim eigenen Endpunkt erforderlich.
+Endpoint URL	Endpunkt-URL
+Only for a custom endpoint, e.g. https://api.openai.com/v1 (…/chat/completions is added).	Nur für den eigenen Endpunkt, z. B. https://api.openai.com/v1 (…/chat/completions wird ergänzt).
+API token	API-Token
+Only for a custom endpoint. Stored in the OS keyring.	Nur für den eigenen Endpunkt. Wird im Schlüsselbund gespeichert.
+Test connection	Verbindung testen
+Asks the language model once and shows the result.	Fragt das Sprachmodell einmal und zeigt das Ergebnis.
+Please turn the plugin on first.	Bitte das Plugin zuerst einschalten.
+Hi! Quick connection test, how are you?	Hallo! Kurzer Verbindungstest, alles gut bei dir?
+Connection ok ({s} s): {r}	Verbindung ok ({s} s): {r}
+Connection ok ({s} s), the model chose not to reply	Verbindung ok ({s} s), das Modell wollte nicht antworten
+Connection failed: {e}	Verbindung fehlgeschlagen: {e}
+Test running, the result shows as a notification.	Test läuft, das Ergebnis erscheint als Hinweis.
+skipped ({author}): {why}	übersprungen ({author}): {why}
+endpoint URL missing	Endpunkt-URL fehlt
+model name missing	Modellname fehlt
+no result	kein Ergebnis
+cancelled	abgebrochen
+Claude Code (claude)	Claude Code (claude)
+Codex (codex)	Codex (codex)
+Cursor (cursor-agent)	Cursor (cursor-agent)

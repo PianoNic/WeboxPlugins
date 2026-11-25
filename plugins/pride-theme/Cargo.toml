@@ -17,3 +17,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 collabhost-plugin-api.workspace = true
+
+[dev-dependencies]
+# Only for the translation table check (i18n::untranslated).
+serde_json = "1"
