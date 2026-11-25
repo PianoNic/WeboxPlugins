@@ -18,7 +18,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.auto-reply/1.0.1/windows-x86_64/collabhost_auto_reply.dll",
-          "sha256": "1b6fa2706881e0d7805545407fb40859f93e44ccee0e644dc08e997ff23f32f2",
+          "sha256": "c33d968858facfe8dc3c8bbf70e377a556f613714fcf178269aa61a7c98a4d5a",
           "size": 525824
         }
       },
@@ -41,7 +41,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.mcp/1.0.0/windows-x86_64/collabhost_mcp.dll",
-          "sha256": "e8a51dba1b96728a7331e685fdec38184fc17d25ce5117775170c03fd3abfa8c",
+          "sha256": "be9a58aaa62a0712f393c596448ee2513b4fa9512f0ba8ff286aae8d7a9a1c02",
           "size": 518656
         }
       },
@@ -58,20 +58,20 @@
       "description": "Keeps deleted messages visible, marked as deleted, and shows the earlier versions of edited messages. Stored only on this computer.",
       "files": {
         "linux-x86_64": {
-          "file": "files/dev.webox.plugins.message-logger/1.1.0/linux-x86_64/libcollabhost_message_logger.so",
-          "sha256": "f0ad740b52284f28fa8e0eef82512b56674c45f28855a7ec212d35314ef41c61",
-          "size": 500000
+          "file": "files/dev.webox.plugins.message-logger/1.2.0/linux-x86_64/libcollabhost_message_logger.so",
+          "sha256": "091472bf97eda2b7b9f2d33e367e75c37b6498da687e56d7a46ef722a3e0262d",
+          "size": 549824
         },
         "windows-x86_64": {
-          "file": "files/dev.webox.plugins.message-logger/1.1.0/windows-x86_64/collabhost_message_logger.dll",
-          "sha256": "7c8d9ac87588530990400c4e446de0c8bab57764570520cd157f03c6cc0d6c2e",
-          "size": 343040
+          "file": "files/dev.webox.plugins.message-logger/1.2.0/windows-x86_64/collabhost_message_logger.dll",
+          "sha256": "d53d9069d9c494a1f30e498466527ffdcdb605120e9fc2074f8c28924d93317c",
+          "size": 395776
         }
       },
       "homepage": "https://github.com/PianoNic/WeboxPlugins/tree/main/plugins/message-logger",
       "name": "Nachrichtenprotokoll",
       "pkg": "dev.webox.plugins.message-logger",
-      "version": "1.1.0"
+      "version": "1.2.0"
     },
     {
       "authors": [
@@ -87,7 +87,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.pride-theme/1.6.0/windows-x86_64/collabhost_pride_theme.dll",
-          "sha256": "d423e3f2ab752bee91ec7b178ccc5c2931e6d490aae6ab6472a718898fac7b19",
+          "sha256": "49edaf1f8e63cb058fa9f859811f85111a3358ddd2e279717ddbb3bb03f52351",
           "size": 194048
         }
       },
@@ -110,7 +110,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.slash-commands/1.6.0/windows-x86_64/collabhost_slash_commands.dll",
-          "sha256": "b40ff60dd98b803c856027df2181acb03a9bf76756da4fca133f2ffe6b66b5c1",
+          "sha256": "2653b0c83bd245cae44d6a1b5c1acac5e8cb7bdd4b52dbdaa9abdce26b8be119",
           "size": 174592
         }
       },
@@ -133,7 +133,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.video/1.0.0/windows-x86_64/collabhost_video.dll",
-          "sha256": "a741a0464de0008774bf26226c58f1531b66aa14846e96be64311ba36fdfacfc",
+          "sha256": "220253d7d82ac052e0f54450b710f74a17c40a496d6d42fc36f87b7cc224391e",
           "size": 18804224
         }
       },
@@ -156,7 +156,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.who-reacted/1.0.0/windows-x86_64/collabhost_who_reacted.dll",
-          "sha256": "fab65d8775f238ad2d07264a11be154335d86be33fcec26c515c1ea880cd388e",
+          "sha256": "0fa26aef72b88c2ccded2c308d2027154966bff28e492a1878e506a31a293554",
           "size": 260608
         }
       },
