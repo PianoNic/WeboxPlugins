@@ -12,3 +12,9 @@ libloading = "0.8"
 semver = "1"
 serde_json = "1"
 sha2 = "0.10"
+# signs the index (minisign format, Ed25519); Webox verifies with minisign-verify
+minisign = "0.10"
+
+[dev-dependencies]
+# the verifier Webox uses: the tests check the signatures with it
+minisign-verify = "0.3"

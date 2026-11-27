@@ -45,3 +45,46 @@ fn platform_key_matches_webox() {
     let k = host_platform();
     assert!(["windows-x86_64", "linux-x86_64", "macos-aarch64", "macos-x86_64", "linux-aarch64", "windows-aarch64"].contains(&k.as_str()), "{k}");
 }
+
+fn tmp(tag: &str) -> PathBuf {
+    let d = std::env::temp_dir().join(format!("xtask-test-{tag}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(&d).unwrap();
+    d
+}
+
+/// The signatures `sign` writes verify with the library Webox checks them with, and only for the exact index bytes.
+#[test]
+fn signed_index_verifies_like_webox_checks_it() {
+    let d = tmp("sign");
+    std::fs::write(d.join("index.min.json"), r#"{"plugins":[]}"#).unwrap();
+    std::fs::write(d.join("index.json"), "{\n  \"plugins\": []\n}\n").unwrap();
+    // a password-protected key, as `minisign -G` makes it, read back from its file text like the CI secret
+    let kp = minisign::KeyPair::generate_encrypted_keypair(Some("pw".into())).unwrap();
+    let key_text = kp.sk.to_box(None).unwrap().into_string();
+    assert!(sign::secret_key(&key_text, Some("wrong")).is_err());
+    let sk = sign::secret_key(&key_text, Some("pw")).unwrap();
+    assert_eq!(sign::sign_repo(&d, Some(&sk), 1_764_000_000).unwrap(), ["index.min.json", "index.json"]);
+    let pk = minisign_verify::PublicKey::from_base64(&kp.pk.to_base64()).unwrap();
+    for name in sign::SIGNED_FILES {
+        let sig = minisign_verify::Signature::decode(&std::fs::read_to_string(d.join(format!("{name}.minisig"))).unwrap()).unwrap();
+        assert!(sig.trusted_comment().contains(&format!("file:{name}")));
+        let data = std::fs::read(d.join(name)).unwrap();
+        pk.verify(&data, &sig, false).unwrap();
+        let mut changed = data.clone();
+        changed.push(b' ');
+        assert!(pk.verify(&changed, &sig, false).is_err(), "{name} changed after signing");
+    }
+    // another key doesn't verify
+    let other = minisign::KeyPair::generate_unencrypted_keypair().unwrap();
+    let other_pk = minisign_verify::PublicKey::from_base64(&other.pk.to_base64()).unwrap();
+    let sig = minisign_verify::Signature::decode(&std::fs::read_to_string(d.join("index.min.json.minisig")).unwrap()).unwrap();
+    assert!(other_pk.verify(&std::fs::read(d.join("index.min.json")).unwrap(), &sig, false).is_err());
+    // an unencrypted key (`minisign -G -W`) works without a password
+    let plain = other.sk.to_box(None).unwrap().into_string();
+    assert!(sign::secret_key(&plain, None).is_ok() && sign::secret_key(&plain, Some("")).is_ok());
+    // without a key: nothing signed, and old signatures go (they would not match the new index)
+    assert!(sign::sign_repo(&d, None, 0).unwrap().is_empty());
+    assert!(!d.join("index.min.json.minisig").exists() && !d.join("index.json.minisig").exists());
+    let _ = std::fs::remove_dir_all(&d);
+}
