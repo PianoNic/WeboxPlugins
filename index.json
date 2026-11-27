@@ -18,7 +18,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.auto-reply/1.0.3/windows-x86_64/collabhost_auto_reply.dll",
-          "sha256": "6f1f0ac88af90ec9f6736d619685deb38c68d3d9d1953c1106c958ee5e824960",
+          "sha256": "ba4668e4539cae888ec8c35e346a6ae5fa4711f39ee991217fd49807d0a8b0f0",
           "size": 549376
         }
       },
@@ -41,7 +41,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.mcp/1.0.2/windows-x86_64/collabhost_mcp.dll",
-          "sha256": "dd35a326a5f8bf6078e18e7eb62e48e4a6110aa911d2ea8ddeb13a55c47e9503",
+          "sha256": "a24f85d6fda38d3c36ee6bca0399e7f0cdcf967c9a6161ea4d159b745c6884a1",
           "size": 542208
         }
       },
@@ -64,7 +64,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.message-logger/1.2.2/windows-x86_64/collabhost_message_logger.dll",
-          "sha256": "b971c24c20e050655cca0ca19a490363c4d4fc3438d06278cfae6bf0d6f68852",
+          "sha256": "4cb1fcd53316985233c34208fc593f989df39279820f0e0ef397d4c5097a9600",
           "size": 420864
         }
       },
@@ -87,7 +87,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.pride-theme/1.6.2/windows-x86_64/collabhost_pride_theme.dll",
-          "sha256": "ce6c128d8f2208020492d621d22877ade098380e3dbda18f7381f56a71174ffa",
+          "sha256": "e78a4db1fe1017dc2c3257f0885b0f509e93d360f36f6946cfd4f0cef848293c",
           "size": 213504
         }
       },
@@ -110,7 +110,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.slash-commands/1.6.2/windows-x86_64/collabhost_slash_commands.dll",
-          "sha256": "537d90a9196cfc9829359e667d5af5b0f7f0a5bd24483a9346af7b8bd7464f35",
+          "sha256": "5a6c7fa3c4d01d7fbbaee75b936ce494f6de35b04e24fe05ffd23fcc5f00694a",
           "size": 190976
         }
       },
@@ -133,7 +133,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.video/1.0.2/windows-x86_64/collabhost_video.dll",
-          "sha256": "60dedd8d5093f0275857220c0725dd0e611f0544fc54cc71ad72e9c3ee439e89",
+          "sha256": "8283c1857c9ef36ea69382a4d588cde7cac828dc343922904774cfa2f5331727",
           "size": 18824192
         }
       },
@@ -156,7 +156,7 @@
         },
         "windows-x86_64": {
           "file": "files/dev.webox.plugins.who-reacted/1.0.2/windows-x86_64/collabhost_who_reacted.dll",
-          "sha256": "6622df3a7d3bb44a14e3f17f9761d38eb494e8e1915ae9975ae7fa6e3e902440",
+          "sha256": "fb942a61af7cbf8664b349616ba1e9352992ef402d43a147df025857563706bb",
           "size": 277504
         }
       },
